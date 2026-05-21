@@ -78,7 +78,6 @@ Web Push
 The Web Push private key is stored in:
 
 functions/.env
-
 Copy the example file and edit it as needed:
 
 functions/.env.example
