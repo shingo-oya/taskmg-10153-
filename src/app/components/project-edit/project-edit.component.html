@@ -1,0 +1,264 @@
+<div class="project-edit">
+  <main class="main">
+    <div class="page-top">
+      <a
+        class="page-top__back"
+        [routerLink]="notFound() ? ['/projects', 'list'] : ['/projects', managementNumber()]"
+        >◂詳細へ戻る</a
+      >
+      <h1 class="page-top__title">プロジェクトの編集</h1>
+      @if (!notFound()) {
+        <p class="page-top__meta">{{ managementNumber() }}</p>
+      }
+    </div>
+
+    @if (notFound()) {
+      <p class="edit-not-found">プロジェクトが見つかりません。</p>
+      <a class="btn btn--secondary" routerLink="/projects/list">一覧へ</a>
+    } @else {
+      <form class="form-card" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <fieldset class="form-section">
+          <legend class="form-section__legend">基本</legend>
+          <div class="form-grid">
+            <div class="field field--full">
+              <label class="field__label" for="edit-name">プロジェクト名</label>
+              <input class="field__input" id="edit-name" type="text" formControlName="name" />
+              @if (submitted && form.controls.name.errors?.['required']) {
+                <span class="field__error" role="alert">入力してください</span>
+              }
+            </div>
+            <div class="field field--full">
+              <label class="field__label" for="edit-desc">プロジェクト内容</label>
+              <textarea
+                class="field__input field__textarea"
+                id="edit-desc"
+                rows="3"
+                formControlName="description"
+              ></textarea>
+            </div>
+            <div class="field">
+              <label class="field__label" for="edit-end">終了予定日</label>
+              <input class="field__input" id="edit-end" type="date" formControlName="endDate" />
+            </div>
+            <div class="field">
+              <label class="field__label" for="edit-priority">優先度</label>
+              <select class="field__input" id="edit-priority" formControlName="priority">
+                @for (p of priorityOptions; track p) {
+                  <option [value]="p">{{ p }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend class="form-section__legend">担当部署</legend>
+          
+          <div class="dept-picker" role="group" aria-labelledby="edit-depts-label">
+            <span class="field__label" id="edit-depts-label">担当部署を追加</span>
+            <select
+              class="field__input dept-picker__select"
+              id="edit-dept-add"
+              aria-label="担当部署を追加"
+              (change)="onDepartmentPickerChange($event)"
+            >
+              <option value="">担当部署を追加</option>
+              @for (d of departmentsAvailableInPicker; track d) {
+                <option [value]="d">{{ d }}</option>
+              }
+            </select>
+          </div>
+          @if (form.controls.departments.value.length > 0) {
+            <ul class="dept-chips" aria-label="選択中の担当部署">
+              @for (d of selectedDepartmentsSorted; track d) {
+                <li class="dept-chips__item">
+                  <span class="dept-chips__text">{{ d }}</span>
+                  <button
+                    type="button"
+                    class="dept-chips__remove"
+                    (click)="removeDepartment(d)"
+                    [attr.aria-label]="d + ' を削除'"
+                  >
+                    ×
+                  </button>
+                </li>
+              }
+            </ul>
+          } @else if (submitted && form.controls.departments.errors?.['minArrayLength']) {
+            <span class="field__error" role="alert">1つ以上選択してください</span>
+          }
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend class="form-section__legend">参加メンバー</legend>
+          <p class="form-hint">先に担当部署を選び、各行で部署・氏名・役割を指定してください。</p>
+          @if (participantSubmitError) {
+            <p class="field__error" role="alert">
+              有効な参加メンバーを1名以上追加してください（部署は担当部署の範囲内）。
+            </p>
+          }
+          <div class="repeat-block" formArrayName="participants">
+            @for (ctrl of participants.controls; track $index; let i = $index) {
+              <div class="participant-row" [formGroupName]="i">
+                <div class="field">
+                  <label class="field__label" [attr.for]="'edit-p-dept-' + i">部署</label>
+                  <select
+                    class="field__input"
+                    [id]="'edit-p-dept-' + i"
+                    formControlName="department"
+                    (change)="onParticipantDepartmentChange(i)"
+                  >
+                    <option value="">選択</option>
+                    @for (d of form.controls.departments.value; track d) {
+                      <option [value]="d">{{ d }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field__label" [attr.for]="'edit-p-name-' + i">氏名</label>
+                  <select class="field__input" [id]="'edit-p-name-' + i" formControlName="name">
+                    <option value="">選択</option>
+                    @for (n of staffForDepartment(participantDepartmentAt(i)); track n) {
+                      <option [value]="n">{{ n }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field__label" [attr.for]="'edit-p-role-' + i">役割</label>
+                  <select class="field__input" [id]="'edit-p-role-' + i" formControlName="role">
+                    @for (r of memberRoleOptions; track r) {
+                      <option [value]="r">{{ r }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="participant-row__actions">
+                  <button
+                    type="button"
+                    class="link-btn"
+                    (click)="removeParticipantRow(i)"
+                    [disabled]="participants.length <= 1"
+                  >
+                    削除
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+          <button type="button" class="add-row-btn" (click)="addParticipantRow()">＋ メンバー行を追加</button>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend class="form-section__legend">日程・進捗</legend>
+          <div class="form-grid">
+            <div class="field">
+            <label class="field__label" for="edit-start">着手開始日</label>
+            <input class="field__input" id="edit-start" type="date" formControlName="workStartDate" />
+          </div>
+
+          
+            <div class="field">
+              <label class="field__label" for="edit-status">ステータス</label>
+              <select class="field__input" id="edit-status" formControlName="status">
+                @for (s of statusOptions; track s) {
+                  <option [value]="s">{{ s }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              @if (progressPercentFromLinkedTasks) {
+                <label class="field__label" for="edit-progress">進捗率（課題の進捗率により自動入力）</label>
+              } @else {
+                <label class="field__label" for="edit-progress">進捗率</label>
+                }
+              
+              <input
+                class="field__input"
+                id="edit-progress"
+                type="number"
+                [attr.min]="
+                  progressPercentFromLinkedTasks ? null : form.controls.status.value === '着手中' ? 0 : null
+                "
+                [attr.max]="
+                  progressPercentFromLinkedTasks ? null : form.controls.status.value === '着手中' ? 89 : null
+                "
+                step="1"
+                formControlName="progressPercent"
+              />
+              @if (
+                submitted &&
+                form.controls.progressPercent.errors &&
+                !progressPercentFromLinkedTasks &&
+                form.controls.status.value === '着手中'
+              ) {
+                <span class="field__error" role="alert">0以上89以下の数値を入力してください</span>
+              }
+            </div>
+            <div class="field">
+              <label class="field__label" for="edit-approver">承認者（ステータス確認待ち変更時必須）</label>
+              @if (!approverInputEnabled) {
+                
+              }
+              <select
+                class="field__input"
+                id="edit-approver"
+                formControlName="approver"
+                [attr.aria-invalid]="submitted && approverInputEnabled && form.controls.approver.invalid"
+              >
+                <option value="">選択してください</option>
+                @for (a of approverOptions; track a) {
+                  <option [value]="a">{{ a }}</option>
+                }
+              </select>
+              @if (submitted && approverInputEnabled && form.controls.approver.errors?.['required']) {
+                <span class="field__error" role="alert">承認者を選択してください</span>
+              }
+            </div>
+           
+            <div class="field">
+              <label class="field__label" for="edit-done">完了日</label>
+              <input class="field__input" id="edit-done" type="date" formControlName="completedAt" />
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend class="form-section__legend">マイルストーン</legend>
+          <p class="form-hint">名称のみでも登録できます。日付は任意です。</p>
+          <div class="repeat-block" formArrayName="milestones">
+            @for (ctrl of milestones.controls; track $index; let i = $index) {
+              <div class="milestone-row" [formGroupName]="i">
+                <div class="field field--grow">
+                  <label class="field__label" [attr.for]="'edit-ms-title-' + i">名称</label>
+                  <input
+                    class="field__input"
+                    type="text"
+                    [id]="'edit-ms-title-' + i"
+                    formControlName="title"
+                  />
+                </div>
+                <div class="field">
+                  <label class="field__label" [attr.for]="'edit-ms-date-' + i">予定日</label>
+                  <input
+                    class="field__input"
+                    type="date"
+                    [id]="'edit-ms-date-' + i"
+                    formControlName="targetDate"
+                  />
+                </div>
+                <div class="milestone-row__actions">
+                  <button type="button" class="link-btn" (click)="removeMilestoneRow(i)">削除</button>
+                </div>
+              </div>
+            }
+          </div>
+          <button type="button" class="add-row-btn" (click)="addMilestoneRow()">＋ マイルストーンを追加</button>
+        </fieldset>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn--secondary" (click)="cancel()">キャンセル</button>
+          <button type="submit" class="btn btn--primary">保存</button>
+        </div>
+      </form>
+    }
+  </main>
+</div>

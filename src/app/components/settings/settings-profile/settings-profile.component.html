@@ -1,0 +1,116 @@
+<main class="profile">
+  <header class="profile__header">
+    <h1 class="profile__title">プロフィール設定</h1>
+    <p class="profile__subtitle">基本情報を編集できます。</p>
+  </header>
+
+  <div class="profile-card">
+    @if (loading()) {
+      <p class="profile__loading" role="status">読み込み中…</p>
+    }
+    <form
+      class="form"
+      [class.form--hidden]="loading()"
+      [formGroup]="form"
+      (ngSubmit)="onSubmit()"
+      novalidate
+    >
+      @if (emailOutOfSync() && signInEmail()) {
+        <p class="profile__notice" role="note">
+          ログイン用メール（{{ signInEmail() }}）と上のメール欄の内容が一致していません。現在のパスワードは
+          <strong>ログイン用メール</strong>のアカウントのものを入力してください。
+        </p>
+      }
+
+      <section class="fields" aria-label="基本情報">
+        <div class="field">
+          <label class="field__label" for="profile-department">部署</label>
+          <input
+            id="profile-department"
+            class="field__input"
+            type="text"
+            formControlName="department"
+            autocomplete="organization"
+            [attr.aria-invalid]="submitted && form.controls.department.invalid"
+          />
+          @if (submitted && form.controls.department.errors?.['required']) {
+            <span class="field__error" role="alert">入力してください</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="profile-name">名前</label>
+          <input
+            id="profile-name"
+            class="field__input"
+            type="text"
+            formControlName="name"
+            autocomplete="name"
+            [attr.aria-invalid]="submitted && form.controls.name.invalid"
+          />
+          @if (submitted && form.controls.name.errors?.['required']) {
+            <span class="field__error" role="alert">入力してください</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="profile-email">メールアドレス</label>
+          <input
+            id="profile-email"
+            class="field__input"
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+            inputmode="email"
+            [attr.aria-invalid]="submitted && form.controls.email.invalid"
+          />
+          @if (submitted && form.controls.email.errors?.['required']) {
+            <span class="field__error" role="alert">入力してください</span>
+          } @else if (submitted && form.controls.email.errors?.['email']) {
+            <span class="field__error" role="alert">有効なメールアドレスを入力してください</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="profile-current-password">現在のパスワード</label>
+          <input
+            id="profile-current-password"
+            class="field__input"
+            type="password"
+            formControlName="currentPassword"
+            autocomplete="current-password"
+            placeholder="メールまたはパスワードを変更する場合は必須"
+          />
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="profile-password">新しいパスワード</label>
+          <input
+            id="profile-password"
+            class="field__input"
+            type="password"
+            formControlName="newPassword"
+            autocomplete="new-password"
+            placeholder="変更する場合のみ入力（8文字以上）"
+            [attr.aria-invalid]="submitted && form.controls.newPassword.invalid"
+          />
+          @if (submitted && form.controls.newPassword.errors?.['minlength']) {
+            <span class="field__error" role="alert">8文字以上で入力してください</span>
+          }
+        </div>
+      </section>
+
+      <div class="form-footer">
+        @if (saveError()) {
+          <p class="form-footer__error" role="alert">{{ saveError() }}</p>
+        }
+        @if (saveMessage()) {
+          <p class="form-footer__msg" role="status">{{ saveMessage() }}</p>
+        }
+        <button class="btn btn--primary" type="submit" [disabled]="loading() || saving()">
+          {{ saving() ? '保存中…' : '保存' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</main>

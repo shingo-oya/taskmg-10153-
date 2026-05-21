@@ -1,0 +1,156 @@
+<div class="users-registered">
+  <main class="main">
+    <div class="page-top">
+      <a class="page-top__back" routerLink="/settings/users">◂戻る</a>
+      <h1 class="page-top__title">
+        @if (isEditMode) {
+          ユーザー編集
+        } @else {
+          ユーザー登録
+        }
+      </h1>
+    </div>
+    @if (submitError()) {
+      <p class="users-registered__error" role="alert">{{ submitError() }}</p>
+    }
+    <div class="register-layout">
+      <div class="form-card">
+    <form class = "form" [formGroup] = "form" (ngSubmit) = "onSubmit()" novalidate>
+     <div class = "form-grid">
+      <div class="field">
+        <label class="field__label" for="add-department">部署</label>
+        <select
+          class="field__input"
+          formControlName="department"
+          id="add-department"
+          [attr.aria-invalid]="submitted && form.controls.department.invalid"
+        >
+          <option value="">選択してください</option>
+          @for (dept of departmentOptions; track dept) {
+            <option [value]="dept">{{ dept }}</option>
+          }
+        </select>
+        @if (submitted && form.controls.department.errors?.['required']) {
+          <span class="field__error" role="alert">部署を選択してください</span>
+        }
+      </div>
+        <div class = "field">
+       <label class = "field__label" for = "add-name">名前</label>
+       <input 
+         class = "field__input"
+         type = "text"
+         formControlName = "name"
+         id = "add-name"
+         autocomplete = "name" [attr.aria-invalid] = "submitted && form.controls.name.invalid">
+        @if (submitted && form.controls.name.errors?.['required']) {
+         <span class = "field__error" role = "alert">入力してください</span>
+        }
+        </div>
+        <div class = "field">
+         <label class = "field__label" for = "add-email">メールアドレス</label>
+         <input 
+         class = "field__input"
+         type = "email"
+         formControlName = "email"
+         id = "add-email"
+         autocomplete = "email" [attr.aria-invalid] = "submitted && form.controls.email.invalid">
+        @if (submitted && form.controls.email.errors?.['required']) {
+         <span class = "field__error" role = "alert">入力してください</span>
+        }
+        @if (submitted && form.controls.email.errors?.['email']) {
+         <span class = "field__error" role = "alert">有効なメールアドレスを入力してください</span>
+        }
+        </div>
+        <div class = "field">
+         <label class = "field__label" for = "add-password">パスワード</label>
+         <input 
+         class = "field__input"
+         type = "password"
+         formControlName = "password"
+         id = "add-password"
+         autocomplete = "new-password" [attr.aria-invalid] = "submitted && form.controls.password.invalid">
+        @if (submitted && form.controls.password.errors?.['required']) {
+         <span class = "field__error" role = "alert">入力してください</span>
+        }
+        @if (submitted && form.controls.password.errors?.['minlength']) {
+         <span class = "field__error" role = "alert">8文字以上で入力してください</span>
+        }
+        </div>
+        <div class = "field">
+         <label class = "field__label" for = "add-confirm-password">パスワード確認</label>
+         <input 
+         class = "field__input"
+         type = "password"
+         formControlName = "confirmPassword"
+         id = "add-confirm-password"
+         autocomplete="new-password"
+         [attr.aria-invalid]="submitted && form.controls.confirmPassword.invalid"
+         [attr.aria-describedby]="
+           submitted && form.controls.confirmPassword.invalid ? 'add-confirm-password-error' : null
+         ">
+        @if (submitted && form.controls.confirmPassword.errors?.['required']) {
+          <span id="add-confirm-password-error" class="field__error" role="alert">入力してください</span>
+        } @else if (submitted && form.controls.confirmPassword.errors?.['minlength']) {
+          <span id="add-confirm-password-error" class="field__error" role="alert"
+            >8文字以上で入力してください</span
+          >
+        } @else if (submitted && form.controls.confirmPassword.errors?.['passwordMismatch']) {
+          <span id="add-confirm-password-error" class="field__error" role="alert"
+            >パスワードが一致しません</span>
+        }
+
+        </div>
+        <div class = "field">
+         <label class = "field__label" for = "add-role">権限</label>
+         <select class = "field__input" formControlName = "role" id = "add-role">
+          <option value = "ゲスト">ゲスト</option>
+          <option value = "メンバー">メンバー</option>
+          <option value = "プロジェクト管理者">プロジェクト管理者</option>
+          <option value = "管理者">管理者</option>
+          <option value = "マスター">マスター</option>
+         </select>
+        </div>
+        <div class = "field">
+         <label class = "field__label" for = "add-status">ステータス</label>
+         <select class = "field__input" formControlName = "status" id = "add-status">
+          <option value = "有効">有効</option>
+          <option value = "無効">無効</option>
+          <option value = "退職済み">退職済み</option>
+         </select>
+        </div>
+        <div class="form-actions">
+          <button class="form-button" type="button" (click)="cancel()">キャンセル</button>
+          <button class="form-button" type="submit">@if (isEditMode) { 更新 } @else { 登録 }</button>
+        </div>
+     </div>
+    </form>
+      </div>
+
+      <div class="register-sidebar">
+        <section class="dept-page-link" aria-labelledby="dept-page-link-heading">
+          <h2 id="dept-page-link-heading" class="dept-page-link__heading">部署の追加/編集</h2>
+          <p class="dept-page-link__lead">
+            部署の追加や編集を行うことができます。
+          </p>
+          <a routerLink="/settings/users/departments" class="dept-page-link__btn">部署の追加/編集</a>
+        </section>
+
+        <aside class="role-help" aria-label="権限の説明">
+          <h2 class="role-help__heading">権限について</h2>
+          <p class="role-help__lead">フォームで選んだ項目が強調表示されます。</p>
+          <ul class="role-help__list">
+            @for (item of roleDescriptions; track item.id) {
+              <li
+                class="role-help__item"
+                [class.role-help__item--current]="form.controls.role.value === item.id"
+              >
+                <span class="role-help__name">{{ item.id }}</span>
+                <p class="role-help__text">{{ item.text }}</p>
+              </li>
+            }
+          </ul>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>

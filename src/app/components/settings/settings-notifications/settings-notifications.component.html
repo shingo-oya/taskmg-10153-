@@ -1,0 +1,67 @@
+<div class="settings-notifications">
+  <main class="main">
+    <div class="page-top">
+      <a class="page-top__back" routerLink="/settings">◂設定へ戻る</a>
+      <h1 class="page-top__title">通知設定</h1>
+    </div>
+
+    <section class="card" aria-labelledby="browser-push-heading">
+      <h2 id="browser-push-heading" class="card__title">ブラウザ通知（Push）</h2>
+      <p class="card__lead">
+        課題・プロジェクトチャットでメンションされたとき、またはスレッドに返信があったときに、通知を表示します。
+      </p>
+
+      @if (!supported()) {
+        <p class="card__note card__note--warn">お使いのブラウザは Web 通知に対応していません。</p>
+      } @else {
+        <dl class="status-list">
+          <div class="status-list__row">
+            <dt>ブラウザの許可</dt>
+            <dd>{{ permissionLabel() }}</dd>
+          </div>
+          <div class="status-list__row">
+            <dt>登録状態</dt>
+            <dd>{{ pushReady() ? '有効' : '未登録' }}</dd>
+          </div>
+        </dl>
+
+        <label class="toggle">
+          <input
+            type="checkbox"
+            [checked]="prefs().browserPushEnabled"
+            [disabled]="busy() || !supported()"
+            (change)="onToggleBrowserPush($event)"
+          />
+          <span>ブラウザ通知を受け取る</span>
+        </label>
+
+        @if (prefs().browserPushEnabled) {
+          <div class="sub-options">
+            <label class="toggle toggle--sub">
+              <input
+                type="checkbox"
+                [checked]="prefs().notifyMention"
+                (change)="onToggleMention($event)"
+              />
+              <span>メンション</span>
+            </label>
+            <label class="toggle toggle--sub">
+              <input
+                type="checkbox"
+                [checked]="prefs().notifyReply"
+                (change)="onToggleReply($event)"
+              />
+              <span>スレッド返信</span>
+            </label>
+          </div>
+        }
+
+        @if (statusMessage()) {
+          <p class="card__note" role="status">{{ statusMessage() }}</p>
+        }
+
+        
+      }
+    </section>
+  </main>
+</div>

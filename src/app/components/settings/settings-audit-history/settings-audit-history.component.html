@@ -1,0 +1,104 @@
+<div class="settings-audit-history">
+  <div class="page-top">
+    <a class="page-top__back" routerLink="/settings">◂設定へ戻る</a>
+    <h1 class="page-top__title">履歴</h1>
+    <p class="page-top__lead">ログイン履歴と権限の変更履歴を確認できます。最新順に最大500件まで保存します。</p>
+  </div>
+
+  @if (loading()) {
+    <p class="audit-panel__empty" role="status">読み込み中…</p>
+  } @else if (loadError()) {
+    <p class="audit-panel__empty" role="alert">{{ loadError() }}</p>
+  }
+
+  <div class="audit-tabs" role="tablist" aria-label="履歴の種類">
+    <button
+      type="button"
+      class="audit-tabs__tab"
+      role="tab"
+      [attr.aria-selected]="activeTab() === 'login'"
+      [class.is-active]="activeTab() === 'login'"
+      (click)="setTab('login')"
+    >
+      ログイン履歴
+    </button>
+    <button
+      type="button"
+      class="audit-tabs__tab"
+      role="tab"
+      [attr.aria-selected]="activeTab() === 'role'"
+      [class.is-active]="activeTab() === 'role'"
+      (click)="setTab('role')"
+    >
+      権限の変更履歴
+    </button>
+  </div>
+
+  @if (activeTab() === 'login') {
+    <section class="audit-panel" role="tabpanel" aria-label="ログイン履歴">
+      @if (loginEntries().length === 0) {
+        <p class="audit-panel__empty">ログイン履歴はまだありません。</p>
+      } @else {
+        <div class="audit-panel__table-wrap">
+          <table class="audit-panel__table">
+            <thead>
+              <tr>
+                <th scope="col">日時</th>
+                <th scope="col">メールアドレス</th>
+                <th scope="col">氏名</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of loginEntries(); track e.id) {
+                <tr>
+                  <td>{{ formatAt(e.at) }}</td>
+                  <td>{{ e.email }}</td>
+                  <td>{{ e.displayName || '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  } @else {
+    <section class="audit-panel" role="tabpanel" aria-label="権限の変更履歴">
+      @if (roleChangeEntries().length === 0) {
+        <p class="audit-panel__empty">権限の変更履歴はまだありません。</p>
+      } @else {
+        <div class="audit-panel__table-wrap">
+          <table class="audit-panel__table">
+            <thead>
+              <tr>
+                <th scope="col">日時</th>
+                <th scope="col">対象ユーザー</th>
+                <th scope="col">変更前</th>
+                <th scope="col">変更後</th>
+                <th scope="col">操作者</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of roleChangeEntries(); track e.id) {
+                <tr>
+                  <td>{{ formatAt(e.at) }}</td>
+                  <td>
+                    <span class="audit-panel__primary">{{ e.targetName || '—' }}</span>
+                    <span class="audit-panel__sub">{{ e.targetEmail }}</span>
+                  </td>
+                  <td>{{ e.previousRole }}</td>
+                  <td>{{ e.newRole }}</td>
+                  <td>
+                    <span class="audit-panel__primary">{{ e.changedByName || '—' }}</span>
+                    @if (e.changedByEmail) {
+                      <span class="audit-panel__sub">{{ e.changedByEmail }}</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</div>

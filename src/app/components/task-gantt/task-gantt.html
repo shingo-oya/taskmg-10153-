@@ -1,0 +1,438 @@
+<main class="main">
+  <div class="page-top">
+    <a class="page-top__back" routerLink="/tasks/list">◂一覧へ戻る</a>
+    <a class="page-top__link" routerLink="/tasks/calendar">▾課題カレンダー</a>
+    <a class="page-top__link" routerLink="/tasks/kanban">▾カンバン</a>
+    <div class="page-top__title-row">
+      <h1 class="page-top__title">課題ガントチャート</h1>
+      @if (perm.can('task.write')) {
+        <button type="button" class="btn btn--primary btn--register" (click)="onRegister()">
+          課題の新規登録
+        </button>
+      }
+    </div>
+    <p class="page-top__meta">プロジェクト単位で課題の期間を表示（ドラッグで日付変更）</p>
+  </div>
+
+  <section class="search-bar" aria-label="検索条件の表示と変更">
+    <button
+      type="button"
+      class="btn btn--secondary btn--search"
+      (click)="toggleSearchPanel()"
+      [attr.aria-expanded]="panelOpen()"
+      [attr.aria-controls]="panelOpen() ? 'tg-search-panel' : null"
+      aria-haspopup="dialog"
+    >
+      条件で検索する
+    </button>
+    <div class="search-bar__filters-row" aria-live="polite">
+      <div class="search-field">
+        <span class="search-field__label">[種別]</span>
+        <span class="search-field__value">{{ appliedTypeLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[担当部署]</span>
+        <span class="search-field__value">{{ appliedDepartmentLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[担当者]</span>
+        <span class="search-field__value">{{ appliedMemberLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[終了予定日]</span>
+        <span class="search-field__value">{{ appliedEndDateLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[優先度]</span>
+        <span class="search-field__value">{{ appliedPriorityLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[ステータス]</span>
+        <span class="search-field__value">{{ appliedStatusLabel() }}</span>
+      </div>
+    </div>
+  </section>
+
+  @if (panelOpen()) {
+    <div class="search-overlay" (click)="closePanelWithoutApply()">
+      <div
+        id="tg-search-panel"
+        class="search-panel"
+        role="dialog"
+        aria-label="検索条件の選択"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="search-panel__toolbar">
+          <button type="button" class="btn btn--primary" (click)="applySearch()">検索</button>
+          <button type="button" class="btn btn--secondary" (click)="closePanelWithoutApply()">キャンセル</button>
+          <button type="button" class="btn btn--ghost search-panel__clear" (click)="clearDraftFilters()">
+            条件をクリア
+          </button>
+          <app-filter-presets
+            [screen]="'task-gantt'"
+            [draftSnapshot]="draftFilterSnapshot()"
+            (applySnapshot)="onPresetApplied($event)"
+          />
+        </div>
+        <div class="search-panel__date-range" (click)="$event.stopPropagation()">
+          <span class="search-panel__date-range-label" id="tg-end-date-label">終了予定日</span>
+          <div class="search-panel__date-range-inputs" role="group" aria-labelledby="tg-end-date-label">
+            <input
+              type="date"
+              class="search-panel__date-input"
+              [value]="draftEndDateFrom()"
+              (input)="onDraftEndFromInput($event)"
+              aria-label="終了予定日 開始"
+            />
+            <span class="search-panel__date-sep" aria-hidden="true">～</span>
+            <input
+              type="date"
+              class="search-panel__date-input"
+              [value]="draftEndDateTo()"
+              (input)="onDraftEndToInput($event)"
+              aria-label="終了予定日 終了"
+            />
+          </div>
+        </div>
+        <div class="search-panel__filters" (click)="onFilterPanelAreaClick($event)">
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'type'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('type', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'type'"
+              [attr.aria-controls]="'filter-tg-type'"
+              id="filter-tg-type-trigger"
+            >
+              <span class="filter-dd__heading">種別</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftTypes()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'type') {
+              <div class="filter-dd__menu" id="filter-tg-type" role="group" aria-labelledby="filter-tg-type-trigger">
+                @for (ty of typeOptions; track ty) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftTypeSelected(ty)"
+                      (change)="onDraftTypeChange(ty, $event)"
+                    />
+                    {{ ty }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'department'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('department', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'department'"
+              [attr.aria-controls]="'filter-tg-dept'"
+              id="filter-tg-dept-trigger"
+            >
+              <span class="filter-dd__heading">担当部署</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftDepartments()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'department') {
+              <div class="filter-dd__menu" id="filter-tg-dept" role="group" aria-labelledby="filter-tg-dept-trigger">
+                @for (dept of departmentOptions; track dept) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftDepartmentSelected(dept)"
+                      (change)="onDraftDepartmentChange(dept, $event)"
+                    />
+                    {{ dept }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'member'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('member', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'member'"
+              [attr.aria-controls]="'filter-tg-member'"
+              id="filter-tg-member-trigger"
+            >
+              <span class="filter-dd__heading">担当者</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftMembers()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'member') {
+              <div
+                class="filter-dd__menu"
+                id="filter-tg-member"
+                role="group"
+                aria-labelledby="filter-tg-member-trigger"
+              >
+                @for (m of memberOptions; track m) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftMemberSelected(m)"
+                      (change)="onDraftMemberChange(m, $event)"
+                    />
+                    {{ m }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'priority'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('priority', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'priority'"
+              [attr.aria-controls]="'filter-tg-priority'"
+              id="filter-tg-priority-trigger"
+            >
+              <span class="filter-dd__heading">優先度</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftPriorities()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'priority') {
+              <div
+                class="filter-dd__menu"
+                id="filter-tg-priority"
+                role="group"
+                aria-labelledby="filter-tg-priority-trigger"
+              >
+                @for (p of priorityOptions; track p) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftPrioritySelected(p)"
+                      (change)="onDraftPriorityChange(p, $event)"
+                    />
+                    {{ p }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'status'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('status', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'status'"
+              [attr.aria-controls]="'filter-tg-status'"
+              id="filter-tg-status-trigger"
+            >
+              <span class="filter-dd__heading">ステータス</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftStatuses()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'status') {
+              <div
+                class="filter-dd__menu"
+                id="filter-tg-status"
+                role="group"
+                aria-labelledby="filter-tg-status-trigger"
+              >
+                @for (st of statusOptions; track st) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftStatusSelected(st)"
+                      (change)="onDraftStatusChange(st, $event)"
+                    />
+                    {{ st }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="cal-toolbar">
+    <button type="button" class="cal-toolbar__btn" (click)="prevMonth()">前月</button>
+    <h2 class="cal-toolbar__month">{{ monthTitle() }}</h2>
+    <button type="button" class="cal-toolbar__btn" (click)="nextMonth()">次月</button>
+    <button type="button" class="cal-toolbar__btn cal-toolbar__btn--ghost" (click)="goThisMonth()">今月</button>
+  </div>
+
+  <div
+    class="gantt"
+    role="region"
+    [attr.aria-label]="monthTitle() + ' のガントチャート'"
+    [style.--gantt-days]="timelineMonth().daysInMonth"
+  >
+    <div class="gantt__header">
+      <div class="gantt__labels-head" aria-hidden="true">
+        <span class="gantt__col gantt__col--name">課題名</span>
+        <span class="gantt__col gantt__col--dept">担当部署</span>
+        <span class="gantt__col gantt__col--member">担当者</span>
+      </div>
+      <div class="gantt__timeline-head">
+        @for (day of timelineMonth().days; track day.dateKey) {
+          <span
+            class="gantt__day-head"
+            [class.gantt__day-head--sat]="isCalendarSatTone(calendarDayTone(day.dateKey))"
+            [class.gantt__day-head--sun]="isCalendarSunTone(calendarDayTone(day.dateKey))"
+          >{{ day.dayNum }}</span>
+        }
+      </div>
+    </div>
+
+    @for (group of projectGroups(); track group.managementNumber) {
+      <div class="gantt__project-row">
+        <div class="gantt__label gantt__label--project">
+          <span class="gantt__project-name">{{ group.name }}</span>
+          <span class="gantt__project-mn">{{ group.managementNumber }}</span>
+        </div>
+        <div class="gantt__timeline gantt__timeline--project">
+          @for (ms of group.milestones; track ms.title + (ms.targetDate ?? '')) {
+            @if (milestoneStyle(ms); as st) {
+              <div
+                class="gantt__milestone"
+                [style.left]="st.left"
+                [style.width]="st.width"
+                [attr.title]="ms.title + (ms.targetDate ? '（' + ms.targetDate + '）' : '')"
+              >
+                <span class="gantt__milestone-diamond" aria-hidden="true"></span>
+                <span class="gantt__milestone-label">{{ ms.title }}</span>
+              </div>
+            }
+          }
+        </div>
+      </div>
+
+      @for (item of group.tasks; track item.task.managementNo) {
+        <div class="gantt__task-row" [class.gantt__task-row--child]="isChildTaskRow(item.task)">
+          <div
+            class="gantt__label gantt__label--task"
+            [class.gantt__label--child]="isChildTaskRow(item.task)"
+          >
+            <a class="gantt__task-link" [routerLink]="['/tasks', item.task.managementNo]">
+              @if (isChildTaskRow(item.task)) {
+                <span class="gantt__child-prefix" aria-hidden="true">↳</span>
+              }
+              {{ item.task.taskname }}
+            </a>
+            <span class="gantt__col gantt__col--dept">{{ departmentsText(item.task) }}</span>
+            <span class="gantt__col gantt__col--member">{{ membersText(item.task) }}</span>
+          </div>
+          <div
+            class="gantt__timeline"
+            #taskTimeline
+            (pointermove)="onTimelinePointerMove($event, taskTimeline)"
+            (pointerup)="onTimelinePointerUp($event, taskTimeline)"
+            (pointercancel)="onTimelinePointerUp($event, taskTimeline)"
+          >
+            @if (item.bar; as bar) {
+              @if (barStyle(bar); as st) {
+                <div
+                  [class]="'gantt__bar ' + statusBarClass(item.task.status)"
+                  [style.left]="st.left"
+                  [style.width]="st.width"
+                  [attr.title]="item.task.taskname + '（' + bar.start + '～' + bar.end + '）'"
+                  (pointerdown)="onBarPointerDown($event, item.task, taskTimeline)"
+                ></div>
+              }
+            } @else {
+              <div
+                class="gantt__markers-layer"
+                (pointerdown)="onMarkerPointerDown($event, item.task, taskTimeline)"
+              >
+                @for (m of item.dayMarkers; track m.dateKey + m.kind) {
+                  @if (markerStyle(m.dateKey); as st) {
+                    @if (isDatePointMarker(m.kind)) {
+                      <div
+                        class="gantt__date-marker"
+                        [class]="'gantt__date-marker--' + m.kind"
+                        [style.left]="st.left"
+                        [style.width]="st.width"
+                        [attr.title]="markerLabel(m.kind) + ' ' + m.dateKey"
+                      >
+                        <span class="gantt__date-marker-icon" aria-hidden="true">{{
+                          markerSymbol(m.kind)
+                        }}</span>
+                        <span class="gantt__date-marker-label">{{ markerLabel(m.kind) }}</span>
+                      </div>
+                    } @else {
+                      <div
+                        class="gantt__marker"
+                        [class]="'gantt__marker--' + m.kind"
+                        [style.left]="st.left"
+                        [style.width]="st.width"
+                        [attr.title]="markerLabel(m.kind) + ' ' + m.dateKey"
+                      ></div>
+                    }
+                  }
+                }
+              </div>
+            }
+            @if (item.bar) {
+              @for (m of item.dayMarkers; track m.dateKey + m.kind) {
+                @if (markerStyle(m.dateKey); as st) {
+                  @if (isDatePointMarker(m.kind)) {
+                    <div
+                      class="gantt__date-marker gantt__date-marker--overlay"
+                      [class]="'gantt__date-marker--' + m.kind"
+                      [style.left]="st.left"
+                      [style.width]="st.width"
+                      [attr.title]="markerLabel(m.kind) + ' ' + m.dateKey"
+                    >
+                      <span class="gantt__date-marker-icon" aria-hidden="true">{{
+                        markerSymbol(m.kind)
+                      }}</span>
+                      <span class="gantt__date-marker-label">{{ markerLabel(m.kind) }}</span>
+                    </div>
+                  } @else {
+                    <div
+                      class="gantt__marker gantt__marker--overlay"
+                      [class]="'gantt__marker--' + m.kind"
+                      [style.left]="st.left"
+                      [style.width]="st.width"
+                      [attr.title]="markerLabel(m.kind) + ' ' + m.dateKey"
+                    ></div>
+                  }
+                }
+              }
+            }
+          </div>
+        </div>
+      }
+    }
+  </div>
+</main>

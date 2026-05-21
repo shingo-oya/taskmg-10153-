@@ -1,0 +1,36 @@
+<div class="row-actions" (click)="$event.stopPropagation()">
+  <button
+    #trigger
+    type="button"
+    class="row-actions__trigger"
+    (click)="toggle($event)"
+    [attr.aria-expanded]="open()"
+    aria-haspopup="menu"
+    aria-label="操作メニュー"
+  >
+    ⋯
+  </button>
+  @if (open()) {
+    <ul
+      #menu
+      class="row-actions__menu"
+      [class.row-actions__menu--fixed]="floatingMenu()"
+      [ngStyle]="floatingMenu() ? menuFixedStyle() : null"
+      role="menu"
+    >
+      @for (item of actions(); track item.id) {
+        <li role="none">
+          <button
+            type="button"
+            class="row-actions__item"
+            [class.row-actions__item--danger]="item.danger"
+            role="menuitem"
+            (click)="selectAction(item.id, $event)"
+          >
+            {{ item.label }}
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>

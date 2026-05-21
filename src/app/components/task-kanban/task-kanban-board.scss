@@ -1,0 +1,239 @@
+/* --- Kanban board（列・カード・承認ダイアログ） --- */
+.kanban {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.75rem;
+  padding: 0 0.15rem 2rem;
+  overflow-x: auto;
+  align-items: flex-start;
+  -webkit-overflow-scrolling: touch;
+}
+
+.kanban__column {
+  flex: 0 0 min(17rem, 82vw);
+  min-width: 14rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.kanban__column-title {
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--card-bg, #fffcfa);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.kanban__column-count {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.kanban__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 4rem;
+  padding: 0.35rem;
+  background: rgba(235, 228, 220, 0.35);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
+.kanban__cards.cdk-drop-list-dragging .kanban-card:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.kanban-card__head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.25rem;
+}
+
+.kanban-card {
+  padding: 0.65rem 0.7rem;
+  background: var(--card-bg, #fffcfa);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(74, 69, 64, 0.06);
+  cursor: grab;
+  font-size: 0.8125rem;
+  line-height: var(--line-relaxed, 1.45);
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &.cdk-drag-preview {
+    box-shadow: 0 8px 24px rgba(74, 69, 64, 0.15);
+  }
+
+  &.cdk-drag-placeholder {
+    opacity: 0.35;
+    border-style: dashed;
+    min-height: 4rem;
+  }
+}
+
+.kanban-card__fields {
+  margin: 0;
+}
+
+.kanban-card__row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0.25rem 0.5rem;
+  margin: 0 0 0.35rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  dt {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  &--name dd {
+    font-weight: 600;
+  }
+}
+
+.kanban-card__link {
+  color: var(--btn, #6d8b6f);
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.kanban-card__status {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  &--not-started {
+    background: #ebe4dc;
+    color: #6a635c;
+  }
+
+  &--in-progress {
+    background: #dce8f5;
+    color: #3d5a80;
+  }
+
+  &--review {
+    background: #ede4f5;
+    color: #5b4580;
+  }
+
+  &--done {
+    background: #e4ebe1;
+    color: #4a6b4c;
+  }
+
+  &--hold {
+    background: #f5ebe0;
+    color: #8a6a4a;
+  }
+
+  &--unknown {
+    background: #f0eeeb;
+    color: var(--text-muted);
+  }
+}
+
+.approver-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(74, 69, 64, 0.35);
+}
+
+.approver-dialog {
+  width: min(24rem, 100%);
+  padding: 1.25rem 1.35rem;
+  background: var(--panel-bg, #fffcfa);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(74, 69, 64, 0.18);
+
+  &__title {
+    margin: 0 0 0.75rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  &__task {
+    margin: 0 0 1rem;
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: var(--line-relaxed, 1.45);
+  }
+
+  &__mn {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.2rem;
+  }
+
+  &__field {
+    margin-bottom: 1rem;
+  }
+
+  &__label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  &__select {
+    width: 100%;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--text);
+  }
+
+  &__error {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.8125rem;
+    color: #b54a44;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}

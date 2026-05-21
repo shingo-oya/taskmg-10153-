@@ -1,0 +1,191 @@
+@if (snapshot(); as s) {
+  <main class="main">
+    <div class="page-intro">
+      <h2 class="page-title">マイページ</h2>
+      <p class="page-meta">{{ s.displayName }} さん · 基準日 {{ s.today }}</p>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-col dash-col--feed">
+        <section class="dash-panel dash-panel--fill" aria-labelledby="dash-chat">
+          <div class="dash-panel__head">
+            <h3 id="dash-chat" class="dash-panel__title">
+              チャット通知
+              @if (unreadChatCount() > 0) {
+                <span class="dash-badge" aria-label="未読件数">未読 {{ unreadChatCount() }}</span>
+              }
+            </h3>
+            @if (unreadChatCount() > 0) {
+              <button type="button" class="dash-mark-read" (click)="markAllChatRead()">すべて既読</button>
+            }
+          </div>
+          <div class="dash-panel__body">
+            @if (s.chatNotifications.length === 0) {
+              <p class="dash-empty">チャット通知はありません。</p>
+            } @else {
+              <ul class="dash-list">
+                @for (n of s.chatNotifications; track n.id) {
+                  <li class="dash-list__item" [class.dash-list__item--unread]="!n.read">
+                    <a
+                      class="dash-list__link"
+                      [class.dash-list__link--unread]="!n.read"
+                      [routerLink]="n.routerLink"
+                      [queryParams]="n.queryParams"
+                    >
+                      <span class="dash-list__meta">{{ chatMeta(n) }}</span>
+                      <span class="dash-list__primary">{{ n.scopeLabel }}</span>
+                      <span class="dash-list__sub">{{ n.authorName }} · {{ formatIsoDateTime(n.createdAtIso) }}</span>
+                      <span class="dash-list__body">{{ n.bodyPreview }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="dash-col dash-col--feed">
+        <section class="dash-panel dash-panel--fill" aria-labelledby="dash-updates">
+          <div class="dash-panel__head">
+            <h3 id="dash-updates" class="dash-panel__title">
+              プロジェクト・課題の更新通知
+              @if (unreadUpdateCount() > 0) {
+                <span class="dash-badge" aria-label="未読件数">未読 {{ unreadUpdateCount() }}</span>
+              }
+            </h3>
+            @if (unreadUpdateCount() > 0) {
+              <button type="button" class="dash-mark-read" (click)="markAllUpdatesRead()">すべて既読</button>
+            }
+          </div>
+          <div class="dash-panel__body">
+            @if (s.updates.length === 0) {
+              <p class="dash-empty">更新通知はありません。</p>
+            } @else {
+              <ul class="dash-list">
+                @for (u of s.updates; track u.id) {
+                  <li class="dash-list__item" [class.dash-list__item--unread]="!u.read">
+                    <a
+                      class="dash-list__link"
+                      [class.dash-list__link--unread]="!u.read"
+                      [routerLink]="u.routerLink"
+                    >
+                      <span class="dash-list__meta">{{ updateMeta(u) }}</span>
+                      <span class="dash-list__primary">{{ u.scopeLabel }}</span>
+                      <span class="dash-list__sub">{{ u.by }}</span>
+                      <span class="dash-list__body">{{ u.line }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="dash-col dash-col--stack">
+        <section class="dash-panel dash-panel--split" aria-labelledby="dash-today">
+          <h3 id="dash-today" class="dash-panel__title">今日期限の課題</h3>
+          <div class="dash-panel__body">
+            @if (s.dueToday.length === 0) {
+              <p class="dash-empty">該当する課題はありません。</p>
+            } @else {
+              <ul class="dash-list dash-list--compact">
+                @for (t of s.dueToday; track t.managementNo) {
+                  <li class="dash-list__item">
+                    <a class="dash-list__link" [routerLink]="['/tasks', t.managementNo]">
+                      <span class="dash-list__primary">{{ taskLine(t) }}</span>
+                      <span class="dash-list__sub">{{ t.status }} · 終了予定 {{ t.endDate }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <section class="dash-panel dash-panel--split" aria-labelledby="dash-overdue">
+          <h3 id="dash-overdue" class="dash-panel__title">期限切れの課題</h3>
+          <div class="dash-panel__body">
+            @if (s.overdue.length === 0) {
+              <p class="dash-empty">該当する課題はありません。</p>
+            } @else {
+              <ul class="dash-list dash-list--compact">
+                @for (t of s.overdue; track t.managementNo) {
+                  <li class="dash-list__item">
+                    <a class="dash-list__link dash-list__link--alert" [routerLink]="['/tasks', t.managementNo]">
+                      <span class="dash-list__primary">{{ taskLine(t) }}</span>
+                      <span class="dash-list__sub">{{ t.status }} · 終了予定 {{ t.endDate }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <section class="dash-panel dash-panel--split" aria-labelledby="dash-soon">
+          <h3 id="dash-soon" class="dash-panel__title">近日期限の課題（7日以内）</h3>
+          <div class="dash-panel__body">
+            @if (s.dueSoon.length === 0) {
+              <p class="dash-empty">該当する課題はありません。</p>
+            } @else {
+              <ul class="dash-list dash-list--compact">
+                @for (t of s.dueSoon; track t.managementNo) {
+                  <li class="dash-list__item">
+                    <a class="dash-list__link" [routerLink]="['/tasks', t.managementNo]">
+                      <span class="dash-list__primary">{{ taskLine(t) }}</span>
+                      <span class="dash-list__sub">{{ t.status }} · 終了予定 {{ t.endDate }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="dash-col dash-col--stack">
+        <section class="dash-panel dash-panel--split" aria-labelledby="dash-my-review">
+          <h3 id="dash-my-review" class="dash-panel__title">承認されるのを待っているもの</h3>
+          <div class="dash-panel__body">
+            @if (s.myReviewPending.length === 0) {
+              <p class="dash-empty">該当する課題はありません。</p>
+            } @else {
+              <ul class="dash-list dash-list--compact">
+                @for (t of s.myReviewPending; track t.managementNo) {
+                  <li class="dash-list__item">
+                    <a class="dash-list__link" [routerLink]="['/tasks', t.managementNo]">
+                      <span class="dash-list__primary">{{ taskLine(t) }}</span>
+                      <span class="dash-list__sub">承認者 {{ t.approver || '—' }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <section class="dash-panel dash-panel--split" aria-labelledby="dash-approver-review">
+          <h3 id="dash-approver-review" class="dash-panel__title">自分が承認するもの</h3>
+          <div class="dash-panel__body">
+            @if (s.approverReviewPending.length === 0) {
+              <p class="dash-empty">承認が必要な課題はありません。</p>
+            } @else {
+              <ul class="dash-list dash-list--compact">
+                @for (t of s.approverReviewPending; track t.managementNo) {
+                  <li class="dash-list__item">
+                    <a class="dash-list__link" [routerLink]="['/tasks', t.managementNo]">
+                      <span class="dash-list__primary">{{ taskLine(t) }}</span>
+                      <span class="dash-list__sub">終了予定 {{ t.endDate }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+}

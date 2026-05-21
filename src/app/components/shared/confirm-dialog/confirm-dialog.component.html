@@ -1,0 +1,30 @@
+@if (open()) {
+  <div
+    class="confirm-dialog-overlay"
+    role="presentation"
+    (click)="onBackdropClick()"
+  >
+    <div
+      class="confirm-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="ariaLabel()"
+      (click)="$event.stopPropagation()"
+    >
+      <p class="confirm-dialog__text">{{ message() }}</p>
+      <div class="confirm-dialog__actions">
+        <button
+          type="button"
+          [class]="danger() ? 'btn btn--danger' : 'btn btn--primary'"
+          (click)="confirm.emit()"
+        >
+          {{ confirmLabel() }}
+        </button>
+        <button type="button" class="btn btn--secondary" (click)="cancel.emit()">
+          {{ cancelLabel() }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+

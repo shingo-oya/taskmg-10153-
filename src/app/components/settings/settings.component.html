@@ -1,0 +1,189 @@
+<div class="settings-page">
+  @if (menuOpen) {
+    <div class="menu-backdrop" (click)="closeMenu()" aria-hidden="true"></div>
+  }
+  <nav class="side-menu" [class.is-open]="menuOpen" aria-label="メインメニュー">
+    <div class="side-menu__body">
+      <ul class="side-menu-list">
+      @if (perm.can('dashboard.my')) {
+        <li>
+          <a
+            routerLink="/dashboard/my"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closeMenu()"
+            >マイページ</a
+          >
+        </li>
+      }
+      @if (perm.can('list.projects')) {
+        <li>
+          <a
+            routerLink="/projects/list"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closeMenu()"
+            >プロジェクト一覧</a
+          >
+        </li>
+      } @else if (guestProjectLink(); as projectLink) {
+        <li>
+          <a
+            [routerLink]="projectLink"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: false }"
+            (click)="closeMenu()"
+            >プロジェクト</a
+          >
+        </li>
+      }
+      @if (perm.can('list.tasks')) {
+      <li>
+        <a
+          routerLink="/tasks/list"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          (click)="closeMenu()"
+          >課題一覧</a
+        >
+      </li>
+      <li>
+        <a
+          routerLink="/tasks/kanban"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          (click)="closeMenu()"
+          >カンバン</a
+        >
+      </li>
+      <li>
+        <a
+          routerLink="/tasks/calendar"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          (click)="closeMenu()"
+          >カレンダー</a
+        >
+      </li>
+      <li>
+        <a
+          routerLink="/tasks/gantt"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          (click)="closeMenu()"
+          >ガントチャート</a
+        >
+      </li>
+      }
+      @if (perm.can('dashboard.org')) {
+        <li>
+          <a
+            routerLink="/dashboard/org"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closeMenu()"
+            >ダッシュボード</a
+          >
+        </li>
+      }
+      <li>
+        <a
+          routerLink="/settings"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: false }"
+          (click)="closeMenu()"
+          >設定</a
+        >
+      </li>
+      </ul>
+    </div>
+    <div class="side-menu__footer">
+      <button type="button" class="side-menu-logout" (click)="logout()">ログアウト</button>
+    </div>
+  </nav>
+
+  <header class="header">
+    <div class="header-start">
+      <button
+        type="button"
+        class="menu-toggle"
+        (click)="toggleMenu()"
+        [attr.aria-expanded]="menuOpen"
+        [attr.aria-label]="menuOpen ? 'メニューを閉じる' : 'メニューを開く'"
+      >
+        <span class="menu-toggle-line" aria-hidden="true"></span>
+        <span class="menu-toggle-line" aria-hidden="true"></span>
+        <span class="menu-toggle-line" aria-hidden="true"></span>
+      </button>
+      <h1>設定</h1>
+    </div>
+  </header>
+
+  <div class="settings-layout">
+    <aside class="settings-sidebar" aria-label="設定内メニュー">
+      <nav class="settings-nav">
+        <a
+          class="settings-nav__link"
+          routerLink="profile"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          >プロフィール設定</a
+        >
+        @if (perm.can('settings.notifications')) {
+          <a
+            class="settings-nav__link"
+            routerLink="notifications"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            >通知設定</a
+          >
+        }
+        @if (perm.can('settings.templates')) {
+          <a
+            class="settings-nav__link"
+            routerLink="templates"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            >テンプレート設定</a
+          >
+        }
+        @if (perm.can('settings.issueTypes')) {
+          <a
+            class="settings-nav__link"
+            routerLink="issue-types"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            >課題種別設定</a
+          >
+        }
+        @if (perm.can('settings.users')) {
+          <a class="settings-nav__link" routerLink="users" routerLinkActive="is-active"
+            >ユーザー管理</a
+          >
+        }
+        @if (perm.can('settings.auditHistory')) {
+          <a
+            class="settings-nav__link"
+            routerLink="audit-history"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            >ログイン・権限変更履歴</a
+          >
+        }
+        @if (perm.can('archive.restore') || perm.can('trash.manage')) {
+          <a
+            class="settings-nav__link"
+            routerLink="archive-trash"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            >アーカイブ・ゴミ箱</a
+          >
+        }
+      </nav>
+    </aside>
+
+    <div class="settings-content">
+      <router-outlet />
+    </div>
+  </div>
+</div>

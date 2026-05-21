@@ -1,0 +1,236 @@
+rules_version = '2';
+// デプロイ: firebase deploy --only firestore:rules
+// participantNames / members / departments はアプリ書き込み時に正規化すること
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function ownProfile() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userDoc().status == '有効';
+    }
+
+    function userRole() {
+      return userDoc().role;
+    }
+
+    function userDisplayName() {
+      return userDoc().displayName;
+    }
+
+    function userDepartment() {
+      return userDoc().department;
+    }
+
+    function isOrgAdmin() {
+      return ownProfile()
+        && userRole() in ['管理者', 'マスター'];
+    }
+
+    function isProjectManagerOrAbove() {
+      return ownProfile()
+        && userRole() in ['プロジェクト管理者', '管理者', 'マスター'];
+    }
+
+    function isMemberOrAbove() {
+      return ownProfile()
+        && userRole() in ['メンバー', 'プロジェクト管理者', '管理者', 'マスター'];
+    }
+
+    function sharesDepartment(data) {
+      return data.departments is list
+        && data.departments.hasAny([userDepartment()]);
+    }
+
+    function isListedMember(data) {
+      return (data.members is list && data.members.hasAny([userDisplayName()]))
+        || (data.participantNames is list && data.participantNames.hasAny([userDisplayName()]));
+    }
+
+    function isGuest() {
+      return ownProfile() && userRole() == 'ゲスト';
+    }
+
+    function taskProjectManagementNumber(data) {
+      return data.managementNumber is string && data.managementNumber.size() > 0
+        ? data.managementNumber
+        : (
+            data.parentTaskManagementNo is string
+            && data.parentTaskManagementNo.size() > 0
+            && exists(/databases/$(database)/documents/tasks/$(data.parentTaskManagementNo))
+              ? get(/databases/$(database)/documents/tasks/$(data.parentTaskManagementNo)).data.managementNumber
+              : ''
+          );
+    }
+
+    function guestCanReadProjectByMn(pmn) {
+      return pmn is string
+        && pmn.size() > 0
+        && exists(/databases/$(database)/documents/projects/$(pmn))
+        && isListedMember(get(/databases/$(database)/documents/projects/$(pmn)).data);
+    }
+
+    function canGuestReadTask(data) {
+      return isListedMember(data)
+        || guestCanReadProjectByMn(taskProjectManagementNumber(data));
+    }
+
+    function canReadProjectData(data) {
+      return isOrgAdmin()
+        || (isGuest() && isListedMember(data))
+        || (!isGuest() && (sharesDepartment(data) || isListedMember(data)));
+    }
+
+    function canReadTaskData(data) {
+      return isOrgAdmin()
+        || (isGuest() && canGuestReadTask(data))
+        || (!isGuest() && (sharesDepartment(data) || isListedMember(data)));
+    }
+
+    match /users/{userId} {
+      allow read: if ownProfile();
+      allow create: if isOrgAdmin();
+      allow update: if isOrgAdmin()
+        || (signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.role == resource.data.role);
+      allow delete: if isOrgAdmin();
+
+      match /webPushSubscriptions/{subscriptionId} {
+        allow read, write: if signedIn() && request.auth.uid == userId;
+      }
+
+      match /chatReadCursor/{cursorId} {
+        allow read: if signedIn() && request.auth.uid == userId;
+        allow create, update: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasAll(['kind', 'scopeId', 'lastReadAtIso'])
+          && request.resource.data.keys().hasOnly(['kind', 'scopeId', 'lastReadAtIso'])
+          && request.resource.data.kind in ['task', 'project']
+          && request.resource.data.scopeId is string
+          && request.resource.data.scopeId.size() > 0
+          && request.resource.data.lastReadAtIso is string
+          && request.resource.data.lastReadAtIso.size() > 0;
+        allow delete: if false;
+      }
+
+      match /dashboardReadState/{cursorId} {
+        allow read: if signedIn() && request.auth.uid == userId;
+        allow create, update: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasAll(['kind', 'scopeId', 'lastReadAtIso'])
+          && request.resource.data.keys().hasOnly(['kind', 'scopeId', 'lastReadAtIso'])
+          && request.resource.data.kind in ['task', 'project']
+          && request.resource.data.scopeId is string
+          && request.resource.data.scopeId.size() > 0
+          && request.resource.data.lastReadAtIso is string
+          && request.resource.data.lastReadAtIso.size() > 0;
+        allow delete: if false;
+      }
+    }
+
+    match /auditLogins/{entryId} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email is string
+        && request.resource.data.at is string;
+      allow read: if isOrgAdmin();
+      allow update, delete: if false;
+    }
+
+    match /auditRoleChanges/{entryId} {
+      allow create: if isOrgAdmin()
+        && request.resource.data.targetEmail is string
+        && request.resource.data.at is string;
+      allow read: if isOrgAdmin();
+      allow update, delete: if false;
+    }
+
+    match /projects/{projectId} {
+      allow read: if ownProfile() && canReadProjectData(resource.data);
+      allow create: if isProjectManagerOrAbove();
+      allow update: if ownProfile()
+        && canReadProjectData(resource.data)
+        && isProjectManagerOrAbove();
+      allow delete: if isProjectManagerOrAbove();
+
+      match /messages/{messageId} {
+        allow read: if ownProfile()
+          && canReadProjectData(get(/databases/$(database)/documents/projects/$(projectId)).data);
+        allow create: if ownProfile()
+          && isMemberOrAbove()
+          && canReadProjectData(get(/databases/$(database)/documents/projects/$(projectId)).data);
+        allow update, delete: if isProjectManagerOrAbove();
+      }
+    }
+
+    match /tasks/{taskId} {
+      allow read: if ownProfile() && canReadTaskData(resource.data);
+      allow create: if isMemberOrAbove();
+      allow update: if ownProfile()
+        && canReadTaskData(resource.data)
+        && isMemberOrAbove();
+      allow delete: if isProjectManagerOrAbove();
+
+      match /messages/{messageId} {
+        allow read: if ownProfile()
+          && canReadTaskData(get(/databases/$(database)/documents/tasks/$(taskId)).data);
+        allow create: if ownProfile()
+          && isMemberOrAbove()
+          && canReadTaskData(get(/databases/$(database)/documents/tasks/$(taskId)).data);
+        allow update, delete: if isProjectManagerOrAbove();
+      }
+    }
+
+    function isArchiveRetentionBucket(data) {
+      return data.bucket == 'archive';
+    }
+
+    function isTrashRetentionBucket(data) {
+      return data.bucket == 'trash';
+    }
+
+    function canReadRetention(data) {
+      return isOrgAdmin()
+        || (isMemberOrAbove() && isArchiveRetentionBucket(data));
+    }
+
+    function canWriteRetention() {
+      return isOrgAdmin()
+        || (isMemberOrAbove()
+            && isArchiveRetentionBucket(request.resource.data)
+            && (!resource.exists || isArchiveRetentionBucket(resource.data)));
+    }
+
+    function canDeleteRetention() {
+      return isOrgAdmin()
+        || (isMemberOrAbove() && isArchiveRetentionBucket(resource.data));
+    }
+
+    match /trashProjects/{docId} {
+      allow read: if ownProfile() && canReadRetention(resource.data);
+      allow create: if ownProfile() && canWriteRetention();
+      allow update: if ownProfile() && canWriteRetention();
+      allow delete: if ownProfile() && canDeleteRetention();
+    }
+
+    match /trashTasks/{docId} {
+      allow read: if ownProfile() && canReadRetention(resource.data);
+      allow create: if ownProfile() && canWriteRetention();
+      allow update: if ownProfile() && canWriteRetention();
+      allow delete: if ownProfile() && canDeleteRetention();
+    }
+
+    match /trashReserved/{docId} {
+      allow read, write: if isOrgAdmin();
+    }
+  }
+}

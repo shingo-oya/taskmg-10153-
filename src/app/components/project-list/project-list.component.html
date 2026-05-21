@@ -1,0 +1,440 @@
+<div class="project-list">
+  <main class="main">
+    <h2 class="project-list__page-title">プロジェクト一覧</h2>
+    <section class="search-bar" aria-label="検索条件の表示と変更">
+      <button
+        type="button"
+        class="btn btn--secondary btn--search"
+        (click)="toggleSearchPanel()"
+        [attr.aria-expanded]="panelOpen()"
+        [attr.aria-controls]="panelOpen() ? 'pl-search-panel' : null"
+        aria-haspopup="dialog"
+      >
+        条件で検索する
+      </button>
+      <div class="search-bar__filters-row" aria-live="polite">
+        <div class="search-field">
+          <span class="search-field__label">[担当部署]</span>
+          <span class="search-field__value">{{ appliedDepartmentLabel() }}</span>
+        </div>
+        <div class="search-field">
+          <span class="search-field__label">[参加メンバー]</span>
+          <span class="search-field__value">{{ appliedMemberLabel() }}</span>
+        </div>
+        <div class="search-field">
+          <span class="search-field__label">[終了予定日]</span>
+          <span class="search-field__value">{{ appliedEndDateLabel() }}</span>
+        </div>
+        <div class="search-field">
+          <span class="search-field__label">[優先度]</span>
+          <span class="search-field__value">{{ appliedPriorityLabel() }}</span>
+        </div>
+        <div class="search-field">
+          <span class="search-field__label">[ステータス]</span>
+          <span class="search-field__value">{{ appliedStatusLabel() }}</span>
+        </div>
+      </div>
+      @if (perm.can('project.manage')) {
+        <div class="search-bar__actions">
+          <button type="button" class="btn btn--primary btn--register" (click)="onRegister()">
+            プロジェクトの新規登録
+          </button>
+        </div>
+      }
+    </section>
+
+    <app-confirm-dialog
+      [open]="rowConfirmOpen()"
+      [message]="rowConfirmMessage()"
+      [danger]="rowConfirmIsDanger()"
+      [confirmLabel]="rowConfirmIsDanger() ? 'ゴミ箱へ移動' : '実行する'"
+      ariaLabel="プロジェクト操作の確認"
+      (confirm)="confirmRowAction()"
+      (cancel)="cancelRowConfirm()"
+    />
+    @if (rowActionFeedback()) {
+      <p class="list-action-feedback" role="status">{{ rowActionFeedback() }}</p>
+    }
+
+    @if (panelOpen()) {
+      <div class="search-overlay" (click)="closePanelWithoutApply()">
+        <div
+          id="pl-search-panel"
+          class="search-panel"
+          role="dialog"
+          aria-label="検索条件の選択"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="search-panel__toolbar">
+            <button type="button" class="btn btn--primary" (click)="applySearch()">検索</button>
+            <button type="button" class="btn btn--secondary" (click)="closePanelWithoutApply()">キャンセル</button>
+            <button type="button" class="btn btn--ghost search-panel__clear" (click)="clearDraftFilters()">
+              条件をクリア
+            </button>
+            <app-filter-presets
+              [screen]="'project-list'"
+              [draftSnapshot]="draftFilterSnapshot()"
+              (applySnapshot)="onPresetApplied($event)"
+            />
+          </div>
+          <div class="search-panel__date-range" (click)="$event.stopPropagation()">
+            <span class="search-panel__date-range-label" id="pl-end-date-label">終了予定日</span>
+            <div class="search-panel__date-range-inputs" role="group" aria-labelledby="pl-end-date-label">
+              <input
+                type="date"
+                class="search-panel__date-input"
+                [value]="draftEndDateFrom()"
+                (input)="onDraftEndFromInput($event)"
+                aria-label="終了予定日 開始"
+              />
+              <span class="search-panel__date-sep" aria-hidden="true">～</span>
+              <input
+                type="date"
+                class="search-panel__date-input"
+                [value]="draftEndDateTo()"
+                (input)="onDraftEndToInput($event)"
+                aria-label="終了予定日 終了"
+              />
+            </div>
+          </div>
+          <div class="search-panel__filters" (click)="onFilterPanelAreaClick($event)">
+            <div
+              class="filter-dd"
+              [class.filter-dd--open]="openFilterDropdown() === 'department'"
+              (click)="$event.stopPropagation()"
+            >
+              <button
+                type="button"
+                class="filter-dd__trigger"
+                (click)="toggleFilterDropdown('department', $event)"
+                [attr.aria-expanded]="openFilterDropdown() === 'department'"
+                [attr.aria-controls]="'filter-pl-dept'"
+                id="filter-pl-dept-trigger"
+              >
+                <span class="filter-dd__heading">担当部署</span>
+                <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftDepartments()) }}</span>
+                <span class="filter-dd__chevron" aria-hidden="true"></span>
+              </button>
+              @if (openFilterDropdown() === 'department') {
+                <div class="filter-dd__menu" id="filter-pl-dept" role="group" aria-labelledby="filter-pl-dept-trigger">
+                  @for (dept of departmentOptions; track dept) {
+                    <label class="filter-dd__option">
+                      <input
+                        type="checkbox"
+                        class="filter-dd__check"
+                        [checked]="isDraftDepartmentSelected(dept)"
+                        (change)="onDraftDepartmentChange(dept, $event)"
+                      />
+                      {{ dept }}
+                    </label>
+                  }
+                </div>
+              }
+            </div>
+
+            <div
+              class="filter-dd"
+              [class.filter-dd--open]="openFilterDropdown() === 'member'"
+              (click)="$event.stopPropagation()"
+            >
+              <button
+                type="button"
+                class="filter-dd__trigger"
+                (click)="toggleFilterDropdown('member', $event)"
+                [attr.aria-expanded]="openFilterDropdown() === 'member'"
+                [attr.aria-controls]="'filter-pl-member'"
+                id="filter-pl-member-trigger"
+              >
+                <span class="filter-dd__heading">参加メンバー</span>
+                <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftMembers()) }}</span>
+                <span class="filter-dd__chevron" aria-hidden="true"></span>
+              </button>
+              @if (openFilterDropdown() === 'member') {
+                <div
+                  class="filter-dd__menu"
+                  id="filter-pl-member"
+                  role="group"
+                  aria-labelledby="filter-pl-member-trigger"
+                >
+                  @for (m of memberOptions; track m) {
+                    <label class="filter-dd__option">
+                      <input
+                        type="checkbox"
+                        class="filter-dd__check"
+                        [checked]="isDraftMemberSelected(m)"
+                        (change)="onDraftMemberChange(m, $event)"
+                      />
+                      {{ m }}
+                    </label>
+                  }
+                </div>
+              }
+            </div>
+
+            <div
+              class="filter-dd"
+              [class.filter-dd--open]="openFilterDropdown() === 'priority'"
+              (click)="$event.stopPropagation()"
+            >
+              <button
+                type="button"
+                class="filter-dd__trigger"
+                (click)="toggleFilterDropdown('priority', $event)"
+                [attr.aria-expanded]="openFilterDropdown() === 'priority'"
+                [attr.aria-controls]="'filter-pl-priority'"
+                id="filter-pl-priority-trigger"
+              >
+                <span class="filter-dd__heading">優先度</span>
+                <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftPriorities()) }}</span>
+                <span class="filter-dd__chevron" aria-hidden="true"></span>
+              </button>
+              @if (openFilterDropdown() === 'priority') {
+                <div
+                  class="filter-dd__menu"
+                  id="filter-pl-priority"
+                  role="group"
+                  aria-labelledby="filter-pl-priority-trigger"
+                >
+                  @for (p of priorityOptions; track p) {
+                    <label class="filter-dd__option">
+                      <input
+                        type="checkbox"
+                        class="filter-dd__check"
+                        [checked]="isDraftPrioritySelected(p)"
+                        (change)="onDraftPriorityChange(p, $event)"
+                      />
+                      {{ p }}
+                    </label>
+                  }
+                </div>
+              }
+            </div>
+
+            <div
+              class="filter-dd"
+              [class.filter-dd--open]="openFilterDropdown() === 'status'"
+              (click)="$event.stopPropagation()"
+            >
+              <button
+                type="button"
+                class="filter-dd__trigger"
+                (click)="toggleFilterDropdown('status', $event)"
+                [attr.aria-expanded]="openFilterDropdown() === 'status'"
+                [attr.aria-controls]="'filter-pl-status'"
+                id="filter-pl-status-trigger"
+              >
+                <span class="filter-dd__heading">ステータス</span>
+                <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftStatuses()) }}</span>
+                <span class="filter-dd__chevron" aria-hidden="true"></span>
+              </button>
+              @if (openFilterDropdown() === 'status') {
+                <div
+                  class="filter-dd__menu"
+                  id="filter-pl-status"
+                  role="group"
+                  aria-labelledby="filter-pl-status-trigger"
+                >
+                  @for (st of statusOptions; track st) {
+                    <label class="filter-dd__option">
+                      <input
+                        type="checkbox"
+                        class="filter-dd__check"
+                        [checked]="isDraftStatusSelected(st)"
+                        (change)="onDraftStatusChange(st, $event)"
+                      />
+                      {{ st }}
+                    </label>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <ng-template #projectTableHead>
+      <thead>
+        <tr>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('managementNumber')">
+            <button type="button" class="project-table__sort" (click)="toggleSort('managementNumber')">
+              プロジェクト管理番号
+              @if (activeSort()?.key === 'managementNumber') {
+                <span class="project-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('name')">
+            <button type="button" class="project-table__sort" (click)="toggleSort('name')">
+              プロジェクト名
+              @if (activeSort()?.key === 'name') {
+                <span class="project-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('description')">
+            <button type="button" class="project-table__sort" (click)="toggleSort('description')">
+              プロジェクト内容
+              @if (activeSort()?.key === 'description') {
+                <span class="project-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('departments')">
+            <button type="button" class="project-table__sort" (click)="toggleSort('departments')">
+              担当部署
+              @if (activeSort()?.key === 'departments') {
+                <span class="project-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('endDate')">
+            <button type="button" class="project-table__sort" (click)="toggleSort('endDate')">
+              終了予定日
+              @if (activeSort()?.key === 'endDate') {
+                <span class="project-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('priority')">
+            <button type="button" class="project-table__sort" (click)="toggleSort('priority')">
+              優先度
+              @if (activeSort()?.key === 'priority') {
+                <span class="project-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('progress')">
+            <button type="button" class="project-table__sort" (click)="toggleSort('progress')">
+              進捗率
+              @if (activeSort()?.key === 'progress') {
+                <span class="project-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('lastUpdatedAt')">
+            <button type="button" class="project-table__sort" (click)="toggleSort('lastUpdatedAt')">
+              最終更新日
+              @if (activeSort()?.key === 'lastUpdatedAt') {
+                <span class="project-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('lastUpdatedBy')">
+            <button type="button" class="project-table__sort" (click)="toggleSort('lastUpdatedBy')">
+              最終更新者
+              @if (activeSort()?.key === 'lastUpdatedBy') {
+                <span class="project-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" class="project-table__th-actions">操作</th>
+        </tr>
+      </thead>
+    </ng-template>
+
+    @if (!hasFilteredProjects) {
+      <div class="table-wrap">
+        <table class="project-table">
+          <ng-container *ngTemplateOutlet="projectTableHead" />
+          <tbody>
+            <tr>
+              <td colspan="10" class="project-table__empty">条件に一致するプロジェクトがありません</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="status-board">
+        @for (sec of filteredProjectStatusSections; track sec.status) {
+          @if (sec.rows.length > 0) {
+            <section class="status-board__section" [attr.aria-labelledby]="'pl-status-' + sec.status">
+              <h3 class="status-board__title" [id]="'pl-status-' + sec.status">
+                {{ sec.status }}
+                <span class="status-board__count" aria-hidden="true">（{{ sec.rows.length }}）</span>
+              </h3>
+              <div class="table-wrap">
+                <table class="project-table">
+                  <ng-container *ngTemplateOutlet="projectTableHead" />
+                  <tbody>
+                    @for (row of sec.rows; track row.managementNumber) {
+                      <tr
+                        class="project-table__row project-table__row--clickable"
+                        (click)="onRowClick(row)"
+                      >
+                        <td>{{ row.managementNumber }}</td>
+                        <td>{{ row.name }}</td>
+                        <td class="project-table__desc">{{ row.description }}</td>
+                        <td>{{ row.departments.join('、') }}</td>
+                        <td>{{ row.endDate }}</td>
+                        <td>{{ row.priority }}</td>
+                        <td>{{ calculateProgressPercent(row) }}%</td>
+                        <td>{{ row.lastUpdatedAt }}</td>
+                        <td>{{ row.lastUpdatedBy }}</td>
+                        <td class="project-table__actions" (click)="$event.stopPropagation()">
+                          <app-row-actions-menu
+                            [floatingMenu]="true"
+                            (actionSelect)="onProjectRowAction($event, row)"
+                          />
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <div class="project-card-list" [attr.aria-label]="sec.status + 'のプロジェクト'">
+                @for (row of sec.rows; track row.managementNumber) {
+                  <article
+                    class="project-card"
+                    tabindex="0"
+                    (click)="onRowClick(row)"
+                    (keydown.enter)="onRowClick(row)"
+                    (keydown.space)="$event.preventDefault(); onRowClick(row)"
+                  >
+                    <div class="project-card__head">
+                      <h4 class="project-card__name">{{ row.name }}</h4>
+                      <div class="project-card__actions" (click)="$event.stopPropagation()">
+                        <app-row-actions-menu
+                          [floatingMenu]="true"
+                          (actionSelect)="onProjectRowAction($event, row)"
+                        />
+                      </div>
+                    </div>
+                    <dl class="project-card__fields">
+                      <div class="project-card__row">
+                        <dt class="project-card__label">管理番号</dt>
+                        <dd class="project-card__value">{{ row.managementNumber }}</dd>
+                      </div>
+                      <div class="project-card__row">
+                        <dt class="project-card__label">担当部署</dt>
+                        <dd class="project-card__value">{{ row.departments.join('、') }}</dd>
+                      </div>
+                      <div class="project-card__row">
+                        <dt class="project-card__label">終了予定日</dt>
+                        <dd class="project-card__value">{{ row.endDate }}</dd>
+                      </div>
+                      <div class="project-card__row">
+                        <dt class="project-card__label">優先度</dt>
+                        <dd class="project-card__value">{{ row.priority }}</dd>
+                      </div>
+                      <div class="project-card__row">
+                        <dt class="project-card__label">進捗率</dt>
+                        <dd class="project-card__value">{{ calculateProgressPercent(row) }}%</dd>
+                      </div>
+                      @if (row.description) {
+                        <div class="project-card__row">
+                          <dt class="project-card__label">内容</dt>
+                          <dd class="project-card__value project-card__desc">{{ row.description }}</dd>
+                        </div>
+                      }
+                    </dl>
+                  </article>
+                }
+              </div>
+            </section>
+          }
+        }
+      </div>
+    }
+  </main>
+</div>

@@ -1,0 +1,232 @@
+<main class="main">
+  <h2 class="toolbar__title">ユーザー管理</h2>
+
+  <section class="search-bar" aria-label="検索条件の表示と変更">
+    <button
+      type="button"
+      class="btn btn--secondary btn--search"
+      (click)="toggleSearchPanel()"
+      [attr.aria-expanded]="panelOpen()"
+      [attr.aria-controls]="panelOpen() ? 'users-search-panel' : null"
+      aria-haspopup="dialog"
+    >
+      条件で検索する
+    </button>
+    <div class="search-bar__filters-row" aria-live="polite">
+      <div class="search-field">
+        <span class="search-field__label">[部署]</span>
+        <span class="search-field__value">{{ appliedDepartmentLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[権限]</span>
+        <span class="search-field__value">{{ appliedRoleLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[ステータス]</span>
+        <span class="search-field__value">{{ appliedStatusLabel() }}</span>
+      </div>
+    </div>
+    <div class="search-bar__actions">
+      <a class="btn btn--secondary btn--depts" routerLink="departments">部署の追加/編集</a>
+      @if (perm.can('settings.users')) {
+        <a class="btn btn--primary btn--register" routerLink="register">新規ユーザー登録</a>
+      }
+    </div>
+  </section>
+
+  @if (panelOpen()) {
+    <div class="search-overlay" (click)="closePanelWithoutApply()">
+      <div
+        id="users-search-panel"
+        class="search-panel"
+        role="dialog"
+        aria-label="検索条件の選択"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="search-panel__toolbar">
+          <button type="button" class="btn btn--primary" (click)="applySearch()">検索</button>
+          <button type="button" class="btn btn--secondary" (click)="closePanelWithoutApply()">キャンセル</button>
+          <button type="button" class="btn btn--ghost search-panel__clear" (click)="clearDraftFilters()">
+            条件をクリア
+          </button>
+          <app-filter-presets
+            [screen]="'users'"
+            [draftSnapshot]="draftFilterSnapshot()"
+            (applySnapshot)="onPresetApplied($event)"
+          />
+        </div>
+        <div class="search-panel__filters" (click)="onFilterPanelAreaClick($event)">
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'department'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('department', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'department'"
+              [attr.aria-controls]="'filter-dd-dept'"
+              id="filter-dd-dept-trigger"
+            >
+              <span class="filter-dd__heading">部署</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftDepartments()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'department') {
+              <div class="filter-dd__menu" id="filter-dd-dept" role="group" aria-labelledby="filter-dd-dept-trigger">
+                @for (dept of departmentOptions; track dept) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftDepartmentSelected(dept)"
+                      (change)="onDraftDepartmentChange(dept, $event)"
+                    />
+                    {{ dept }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'role'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('role', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'role'"
+              [attr.aria-controls]="'filter-dd-role'"
+              id="filter-dd-role-trigger"
+            >
+              <span class="filter-dd__heading">権限</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftRoles()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'role') {
+              <div class="filter-dd__menu" id="filter-dd-role" role="group" aria-labelledby="filter-dd-role-trigger">
+                @for (r of roleOptions; track r) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftRoleSelected(r)"
+                      (change)="onDraftRoleChange(r, $event)"
+                    />
+                    {{ r }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'status'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('status', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'status'"
+              [attr.aria-controls]="'filter-dd-status'"
+              id="filter-dd-status-trigger"
+            >
+              <span class="filter-dd__heading">ステータス</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftStatuses()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'status') {
+              <div class="filter-dd__menu" id="filter-dd-status" role="group" aria-labelledby="filter-dd-status-trigger">
+                @for (st of statusOptions; track st) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftStatusSelected(st)"
+                      (change)="onDraftStatusChange(st, $event)"
+                    />
+                    {{ st }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="table-wrap">
+    <table class="user-table">
+      <thead>
+        <tr>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('department')">
+            <button type="button" class="user-table__sort" (click)="toggleSort('department')">
+              部署
+              @if (activeSort()?.key === 'department') {
+                <span class="user-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('name')">
+            <button type="button" class="user-table__sort" (click)="toggleSort('name')">
+              名前
+              @if (activeSort()?.key === 'name') {
+                <span class="user-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('email')">
+            <button type="button" class="user-table__sort" (click)="toggleSort('email')">
+              メールアドレス
+              @if (activeSort()?.key === 'email') {
+                <span class="user-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('role')">
+            <button type="button" class="user-table__sort" (click)="toggleSort('role')">
+              権限
+              @if (activeSort()?.key === 'role') {
+                <span class="user-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSortFor('status')">
+            <button type="button" class="user-table__sort" (click)="toggleSort('status')">
+              ステータス
+              @if (activeSort()?.key === 'status') {
+                <span class="user-table__dir" aria-hidden="true">{{ activeSort()!.dir === 'asc' ? '↑' : '↓' }}</span>
+              }
+            </button>
+          </th>
+          <th scope="col" class="user-table__col-actions">編集</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (user of sortedFilteredUsers; track user.email) {
+          <tr>
+            <td>{{ user.department }}</td>
+            <td>{{ user.name }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.role }}</td>
+            <td>{{ user.status }}</td>
+            <td class="user-table__col-actions">
+              <button type="button" class="row-edit" (click)="onEdit(user)">編集</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="user-table__empty">条件に一致するユーザーがありません</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</main>

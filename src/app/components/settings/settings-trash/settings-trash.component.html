@@ -1,0 +1,170 @@
+<div class="settings-trash">
+  <header class="settings-trash__head">
+    <h2 class="settings-trash__title">{{ pageTitle() }}</h2>
+    <p class="settings-trash__lead">{{ leadText() }}</p>
+  </header>
+
+  @if (feedback()) {
+    <p class="settings-trash__feedback" role="status">{{ feedback() }}</p>
+  }
+
+  <div class="settings-trash__tabs settings-trash__tabs--bucket" role="tablist" aria-label="保管の種類">
+    @if (canArchive()) {
+      <button
+        type="button"
+        class="settings-trash__tab"
+        role="tab"
+        [attr.aria-selected]="bucketTab() === 'archive'"
+        [class.is-active]="bucketTab() === 'archive'"
+        (click)="setBucketTab('archive')"
+      >
+        アーカイブ
+      </button>
+    }
+    @if (canTrash()) {
+      <button
+        type="button"
+        class="settings-trash__tab"
+        role="tab"
+        [attr.aria-selected]="bucketTab() === 'trash'"
+        [class.is-active]="bucketTab() === 'trash'"
+        (click)="setBucketTab('trash')"
+      >
+        ゴミ箱
+      </button>
+    }
+  </div>
+
+  <div class="settings-trash__tabs settings-trash__tabs--entity" role="tablist" aria-label="対象の種類">
+    <button
+      type="button"
+      class="settings-trash__tab"
+      role="tab"
+      [attr.aria-selected]="entityTab() === 'projects'"
+      [class.is-active]="entityTab() === 'projects'"
+      (click)="setEntityTab('projects')"
+    >
+      プロジェクト
+    </button>
+    <button
+      type="button"
+      class="settings-trash__tab"
+      role="tab"
+      [attr.aria-selected]="entityTab() === 'tasks'"
+      [class.is-active]="entityTab() === 'tasks'"
+      (click)="setEntityTab('tasks')"
+    >
+      課題
+    </button>
+  </div>
+
+  @if (confirmAction(); as action) {
+    <div class="settings-trash__confirm" role="region" [attr.aria-label]="action.label">
+      <p class="settings-trash__confirm-text">{{ action.label }}</p>
+      <div class="settings-trash__confirm-actions">
+        <button type="button" class="btn-danger btn-danger--sm" (click)="confirmProceed()">実行する</button>
+        <button type="button" class="btn-secondary btn-secondary--sm" (click)="cancelConfirm()">やめる</button>
+      </div>
+    </div>
+  }
+
+  @if (entityTab() === 'projects') {
+    <section class="settings-trash__panel" role="tabpanel" [attr.aria-label]="bucketTab() + 'のプロジェクト'">
+      @if (projectEntries().length === 0) {
+        <p class="settings-trash__empty">{{ emptyMessage() }}</p>
+      } @else {
+        <div class="settings-trash__table-wrap">
+          <table class="settings-trash__table">
+            <thead>
+              <tr>
+                <th scope="col">管理番号</th>
+                <th scope="col">名称</th>
+                <th scope="col">{{ dateColumnLabel() }}</th>
+                <th scope="col">{{ actorColumnLabel() }}</th>
+                <th scope="col">紐づく課題</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (entry of projectEntries(); track entry.project.managementNumber) {
+                <tr>
+                  <td>{{ entry.project.managementNumber }}</td>
+                  <td>{{ entry.project.name }}</td>
+                  <td>{{ formatDeletedAt(entry.deletedAt) }}</td>
+                  <td>{{ entry.deletedBy }}</td>
+                  <td>{{ entry.linkedTasks.length }}件</td>
+                  <td class="settings-trash__actions">
+                    <button
+                      type="button"
+                      class="btn-secondary btn-secondary--sm"
+                      (click)="requestRestoreProject(entry.project.managementNumber, entry.project.name)"
+                    >
+                      復元
+                    </button>
+                    @if (bucketTab() === 'trash') {
+                      <button
+                        type="button"
+                        class="btn-danger btn-danger--sm"
+                        (click)="requestPurgeProject(entry.project.managementNumber, entry.project.name)"
+                      >
+                        完全削除
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  } @else {
+    <section class="settings-trash__panel" role="tabpanel" [attr.aria-label]="bucketTab() + 'の課題'">
+      @if (taskEntries().length === 0) {
+        <p class="settings-trash__empty">{{ emptyMessage() }}</p>
+      } @else {
+        <div class="settings-trash__table-wrap">
+          <table class="settings-trash__table">
+            <thead>
+              <tr>
+                <th scope="col">管理番号</th>
+                <th scope="col">名称</th>
+                <th scope="col">{{ dateColumnLabel() }}</th>
+                <th scope="col">{{ actorColumnLabel() }}</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (entry of taskEntries(); track entry.task.managementNo) {
+                <tr>
+                  <td>{{ entry.task.managementNo }}</td>
+                  <td>{{ entry.task.taskname }}</td>
+                  <td>{{ formatDeletedAt(entry.deletedAt) }}</td>
+                  <td>{{ entry.deletedBy }}</td>
+                  <td class="settings-trash__actions">
+                    <button
+                      type="button"
+                      class="btn-secondary btn-secondary--sm"
+                      (click)="requestRestoreTask(entry.task.managementNo, entry.task.taskname)"
+                    >
+                      復元
+                    </button>
+                    @if (bucketTab() === 'trash') {
+                      <button
+                        type="button"
+                        class="btn-danger btn-danger--sm"
+                        (click)="requestPurgeTask(entry.task.managementNo, entry.task.taskname)"
+                      >
+                        完全削除
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</div>

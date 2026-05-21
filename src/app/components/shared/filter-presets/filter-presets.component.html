@@ -1,0 +1,60 @@
+<div class="filter-presets" (click)="$event.stopPropagation()">
+  <div class="filter-presets__row">
+    <span class="filter-presets__label">保存した条件</span>
+    <div class="filter-presets__picker">
+      <button
+        type="button"
+        class="filter-presets__picker-trigger"
+        (click)="toggleList()"
+        [attr.aria-expanded]="listOpen()"
+        aria-haspopup="listbox"
+      >
+        選択して適用
+      </button>
+      @if (listOpen()) {
+        <ul class="filter-presets__menu" role="listbox" aria-label="保存した検索条件">
+          @if (presetsForScreen().length === 0) {
+            <li class="filter-presets__menu-empty" role="presentation">保存した条件はありません</li>
+          }
+          @for (p of presetsForScreen(); track p.id) {
+            <li class="filter-presets__menu-item" role="presentation">
+              <button type="button" class="filter-presets__menu-apply" (click)="applyPreset(p.id)">
+                {{ p.name }}
+              </button>
+              <button
+                type="button"
+                class="filter-presets__menu-delete"
+                (click)="deletePreset(p.id, $event)"
+                [attr.aria-label]="p.name + 'を削除'"
+              >
+                ×
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+    <button type="button" class="btn btn--primary btn--compact filter-presets__save-toggle" (click)="toggleSaveForm()">
+      {{ saveOpen() ? '閉じる' : '選択した条件を保存' }}
+    </button>
+  </div>
+
+  @if (saveOpen()) {
+    <div class="filter-presets__save-row">
+      <input
+        type="text"
+        class="filter-presets__name-input"
+        [value]="saveName()"
+        (input)="onSaveNameInput($event)"
+        placeholder="条件の名前"
+        maxlength="40"
+        aria-label="保存する条件の名前"
+      />
+      <button type="button" class="btn btn--primary btn--compact" (click)="saveCurrent()">保存</button>
+    </div>
+  }
+
+  @if (feedback()) {
+    <p class="filter-presets__feedback" role="status">{{ feedback() }}</p>
+  }
+</div>

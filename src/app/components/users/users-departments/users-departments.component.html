@@ -1,0 +1,106 @@
+<div class="users-departments">
+  <main class="main">
+    <div class="page-top">
+      <a class="page-top__back" routerLink="/settings/users">◂戻る</a>
+      <h1 class="page-top__title">部署の追加/編集</h1>
+    </div>
+
+    <section class="card" aria-labelledby="add-dept-heading">
+      <h2 id="add-dept-heading" class="card__title">部署を追加</h2>
+      <p class="card__lead">新しい部署名を入力して追加します。</p>
+      <div class="card__row">
+        <input
+          type="text"
+          class="field-input"
+          [value]="newDepartmentName"
+          (input)="onNewDepartmentInput($event)"
+          placeholder="部署名"
+          autocomplete="organization"
+          aria-label="追加する部署名"
+        />
+        <button type="button" class="btn-primary" (click)="onAddDepartment()">追加</button>
+      </div>
+      @if (newFeedback === 'added') {
+        <p class="card__msg card__msg--ok" role="status">部署を追加しました。</p>
+      }
+      @if (newFeedback === 'empty') {
+        <p class="card__msg card__msg--error" role="alert">部署名を入力してください。</p>
+      }
+      @if (newFeedback === 'duplicate') {
+        <p class="card__msg card__msg--error" role="alert">すでに登録されている部署です。</p>
+      }
+    </section>
+
+    <section class="card" aria-labelledby="list-heading">
+      <h2 id="list-heading" class="card__title">部署一覧</h2>
+      <p class="card__lead">
+        編集で名称を変更すると、該当ユーザーの所属もまとめて更新されます。<br />
+        削除はユーザーが誰も所属していない部署のみ可能です。
+      </p>
+      @if (departmentsSorted().length === 0) {
+        <p class="card__empty">部署がまだありません。</p>
+      } @else {
+        <ul class="dept-list">
+          @for (dept of departmentsSorted(); track dept) {
+            <li class="dept-list__item">
+              @if (editingOriginal === dept) {
+                <div class="dept-list__edit">
+                  <input
+                    type="text"
+                    class="field-input dept-list__input"
+                    [value]="editDraft"
+                    (input)="onEditDraftInput($event)"
+                    [attr.aria-label]="dept + 'の新しい名称'"
+                  />
+                  <div class="dept-list__edit-actions">
+                    <button type="button" class="btn-primary btn-primary--sm" (click)="saveEdit()">保存</button>
+                    <button type="button" class="btn-secondary" (click)="cancelEdit()">キャンセル</button>
+                    <button type="button" class="btn-danger btn-danger--sm" (click)="onDeleteClick()">削除</button>
+                  </div>
+                </div>
+                @if (deleteConfirmVisible) {
+                  <div class="dept-list__delete-confirm" role="region" aria-label="部署の削除の確認">
+                    <p class="dept-list__delete-text">
+                      この部署を一覧から削除しますか？ユーザーが1人でも所属している部署は削除できません。
+                    </p>
+                    <div class="dept-list__delete-actions">
+                      <button type="button" class="btn-danger btn-danger--sm" (click)="confirmDelete()">
+                        削除する
+                      </button>
+                      <button type="button" class="btn-secondary btn-secondary--sm" (click)="cancelDeleteConfirm()">
+                        やめる
+                      </button>
+                    </div>
+                  </div>
+                }
+                @if (editFeedback === 'empty') {
+                  <p class="dept-list__error" role="alert">部署名を入力してください。</p>
+                }
+                @if (editFeedback === 'duplicate') {
+                  <p class="dept-list__error" role="alert">すでに使われている部署名です。</p>
+                }
+                @if (editFeedback === 'unchanged') {
+                  <p class="dept-list__hint" role="status">変更がありません。</p>
+                }
+                @if (editFeedback === 'notFound') {
+                  <p class="dept-list__error" role="alert">対象の部署が見つかりません。</p>
+                }
+                @if (editFeedback === 'deleteInUse') {
+                  <p class="dept-list__error" role="alert">
+                    ユーザーが所属しているため削除できません。先にユーザーの部署を変更してください。
+                  </p>
+                }
+                @if (editFeedback === 'deleteNotFound') {
+                  <p class="dept-list__error" role="alert">対象の部署が見つかりません。</p>
+                }
+              } @else {
+                <span class="dept-list__name">{{ dept }}</span>
+                <button type="button" class="btn-secondary btn-secondary--sm" (click)="startEdit(dept)">編集</button>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </main>
+</div>

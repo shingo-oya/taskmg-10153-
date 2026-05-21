@@ -1,0 +1,49 @@
+:host {
+  display: block;
+  height: calc(100vh - 4.5rem);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.project-dash__back {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--btn, #6d8b6f);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.dash-grid--project {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 0.85fr);
+}
+
+@media (max-width: 1100px) {
+  :host {
+    height: auto;
+    min-height: calc(100vh - 4.5rem);
+    overflow: visible;
+  }
+
+  .dash-grid--project {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+}
+
+@media (max-width: 768px) {
+  :host {
+    min-height: 0;
+  }
+
+  .project-dash__back {
+    font-size: 0.8125rem;
+  }
+
+  .dash-summary .dash-stat {
+    flex: 1 1 auto;
+  }
+}

@@ -1,0 +1,294 @@
+<div class="task-add">
+  <main class="main">
+    <div class="page-top">
+      <a class="page-top__back" [routerLink]="taskAddBackLink()">◂戻る</a>
+      <h1 class="page-top__title">課題の新規登録</h1>
+    </div>
+
+    @if (linkedFromParentMn) {
+      <p class="form-context-banner" role="status">
+        親課題「{{ linkedFromParentName }}」（{{ linkedFromParentMn }}）の子課題として登録します。
+        @if (linkedFromProjectMn) {
+          プロジェクト「{{ linkedFromProjectName }}」配下です。
+        }
+      </p>
+    } @else if (linkedFromProjectMn) {
+      <p class="form-context-banner" role="status">
+        この課題はプロジェクト「{{ linkedFromProjectName }}」の関連する課題一覧に表示されます。
+      </p>
+    }
+
+    @if (hasTaskRegistrationTemplates) {
+      <div class="template-bar">
+        <label class="template-bar__label" for="task-reg-template">テンプレートから入力</label>
+        <select
+          id="task-reg-template"
+          class="template-bar__select"
+          (change)="onTaskTemplateSelect($event)"
+        >
+          <option value="">テンプレートを選択</option>
+          @for (t of taskRegistrationTemplates; track t.id) {
+            <option [value]="t.id">{{ t.label }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    <div class="form-card">
+      <form class="form" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <fieldset class="form-section">
+          <legend class="form-section__legend">基本</legend>
+          <div class="form-grid form-grid--2">
+            <div class="field">
+              <label class="field__label" for="task-mgr">課題管理番号</label>
+              <input id="task-mgr" class="field__input" type="text" formControlName="managementNo" />
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="task-type">種別</label>
+              @if (useIssueTypePresets) {
+                <select
+                  id="task-type"
+                  class="field__input"
+                  [value]="selectedTypePresetId"
+                  (change)="onTypePresetChange($event)"
+                  [attr.aria-invalid]="submitted && form.controls.type.invalid"
+                >
+                  <option value="">選択してください</option>
+                  @for (p of issueTypePresets; track p.id) {
+                    <option [value]="p.id">{{ issueTypePresetLabel(p) }}</option>
+                  }
+                  @if (showLegacyTypeOption) {
+                    <option [value]="legacyTypePresetId">{{ legacyTypeLabel }}（登録外）</option>
+                  }
+                </select>
+                <input type="hidden" formControlName="type" />
+              } @else {
+                <select
+                  id="task-type"
+                  class="field__input"
+                  formControlName="type"
+                  [attr.aria-invalid]="submitted && form.controls.type.invalid"
+                >
+                  @for (t of fallbackTaskTypeOptions; track t) {
+                    <option [value]="t">{{ t }}</option>
+                  }
+                </select>
+              }
+              @if (submitted && form.controls.type.errors?.['required']) {
+                <span class="field__error" role="alert">選択してください</span>
+              }
+            </div>
+
+            <div class="field field--full">
+              <label class="field__label" for="task-name">課題名</label>
+              <input
+                id="task-name"
+                class="field__input"
+                type="text"
+                formControlName="taskname"
+                autocomplete="off"
+                [attr.aria-invalid]="submitted && form.controls.taskname.invalid"
+              />
+              @if (submitted && form.controls.taskname.errors?.['required']) {
+                <span class="field__error" role="alert">入力してください</span>
+              }
+            </div>
+
+            <div class="field field--full">
+              <label class="field__label" for="task-content">課題内容</label>
+              <textarea
+                id="task-content"
+                class="field__input field__textarea"
+                rows="3"
+                formControlName="taskContent"
+                placeholder="概要・目的・対応方針など"
+                [attr.aria-invalid]="submitted && form.controls.taskContent.invalid"
+              ></textarea>
+              @if (submitted && form.controls.taskContent.errors?.['required']) {
+                <span class="field__error" role="alert">入力してください</span>
+              }
+            </div>
+
+            <div class="field field--full">
+              <span class="field__label" id="task-depts-label">担当部署（複数可）</span>
+              
+              <div class="dept-picker" role="group" aria-labelledby="task-depts-label">
+                <select
+                  class="field__input dept-picker__select"
+                  id="task-dept-add"
+                  aria-label="担当部署を追加"
+                  (change)="onDepartmentPickerChange($event)"
+                >
+                  <option value="">担当部署を追加</option>
+                  @for (d of departmentsAvailableInPicker; track d) {
+                    <option [value]="d">{{ d }}</option>
+                  }
+                </select>
+              </div>
+              @if (form.controls.departments.value.length > 0) {
+                <ul class="dept-chips" aria-label="選択中の担当部署">
+                  @for (d of selectedDepartmentsSorted; track d) {
+                    <li class="dept-chips__item">
+                      <span class="dept-chips__text">{{ d }}</span>
+                      <button
+                        type="button"
+                        class="dept-chips__remove"
+                        (click)="removeDepartment(d)"
+                        [attr.aria-label]="d + ' を削除'"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  }
+                </ul>
+              } @else if (submitted && form.controls.departments.errors?.['minArrayLength']) {
+                <span class="field__error" role="alert">1つ以上選択してください</span>
+              }
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="task-end">終了予定日</label>
+              <input
+                id="task-end"
+                class="field__input"
+                type="date"
+                formControlName="endDate"
+                [attr.aria-invalid]="submitted && form.controls.endDate.invalid"
+              />
+              @if (submitted && form.controls.endDate.errors?.['required']) {
+                <span class="field__error" role="alert">日付を選択してください</span>
+              }
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="task-priority">優先度</label>
+              <select id="task-priority" class="field__input" formControlName="priority">
+                @for (p of priorityOptions; track p) {
+                  <option [value]="p">{{ p }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend class="form-section__legend">日程・進捗</legend>
+          <div class="form-grid form-grid--2">
+            <div class="field">
+              <label class="field__label" for="task-reg">登録日</label>
+              <input id="task-reg" class="field__input" type="date" formControlName="registeredOn" />
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="task-start">着手開始日</label>
+              <input id="task-start" class="field__input" type="date" formControlName="startedOn" />
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="task-done">完了日</label>
+              <input id="task-done" class="field__input" type="date" formControlName="completedOn" />
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="task-status">ステータス</label>
+              <select id="task-status" class="field__input" formControlName="status">
+                @for (s of statusOptions; track s) {
+                  <option [value]="s">{{ s }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="task-progress">進捗率</label>
+              
+              <input
+                id="task-progress"
+                class="field__input"
+                type="number"
+                min="0"
+                [attr.max]="form.controls.status.value === '着手中' ? 89 : 100"
+                step="1"
+                formControlName="progressPercent"
+                [attr.aria-invalid]="submitted && form.controls.progressPercent.invalid"
+              />
+              @if (submitted && form.controls.progressPercent.errors) {
+                @if (form.controls.status.value === '着手中') {
+                  <span class="field__error" role="alert">0以上89以下の数値を入力してください</span>
+                }
+              }
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="task-approver">承認者（ステータス確認待ち変更時必須）</label>
+              <select
+                id="task-approver"
+                class="field__input"
+                formControlName="approver"
+                [attr.aria-invalid]="submitted && approverInputEnabled && form.controls.approver.invalid"
+              >
+                <option value="">選択してください</option>
+                @for (a of approverOptions; track a) {
+                  <option [value]="a">{{ a }}</option>
+                }
+              </select>
+              @if (submitted && approverInputEnabled && form.controls.approver.errors?.['required']) {
+                <span class="field__error" role="alert">承認者を選択してください</span>
+              }
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend class="form-section__legend">担当メンバー</legend>
+          <p class="form-hint">先に担当部署を選び、各行で部署・氏名を指定してください。</p>
+          @if (participantSubmitError) {
+            <p class="field__error" role="alert">
+              有効な担当メンバーを1名以上追加してください（部署は担当部署の範囲内）。
+            </p>
+          }
+          <div class="repeat-block" formArrayName="participants">
+            @for (ctrl of participants.controls; track $index; let i = $index) {
+              <div class="participant-row" [formGroupName]="i">
+                <div class="field">
+                  <label class="field__label" [attr.for]="'t-dept-' + i">部署</label>
+                  <select
+                    class="field__input"
+                    [id]="'t-dept-' + i"
+                    formControlName="department"
+                    (change)="onParticipantDepartmentChange(i)"
+                  >
+                    <option value="">選択</option>
+                    @for (d of form.controls.departments.value; track d) {
+                      <option [value]="d">{{ d }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field__label" [attr.for]="'t-name-' + i">氏名</label>
+                  <select class="field__input" [id]="'t-name-' + i" formControlName="name">
+                    <option value="">選択</option>
+                    @for (n of staffForDepartment(participantDepartmentAt(i)); track n) {
+                      <option [value]="n">{{ n }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="participant-row__actions">
+                  <button type="button" class="link-btn" (click)="removeParticipantRow(i)" [disabled]="participants.length <= 1">
+                    削除
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+          <button type="button" class="add-row-btn" (click)="addParticipantRow()">＋ メンバー行を追加</button>
+        </fieldset>
+
+        <div class="form-actions">
+          <button type="button" class="form-button" (click)="cancel()">キャンセル</button>
+          <button class="form-button" type="submit">登録</button>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>

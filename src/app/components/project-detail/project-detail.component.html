@@ -1,0 +1,518 @@
+<div class="project-detail">
+  <main class="main">
+    <div class="page-top">
+      @if (perm.can('list.projects')) {
+        <a class="page-top__back" routerLink="/projects/list">◂一覧へ戻る</a>
+      }
+      @if (!project()) {
+        <h1 class="page-top__title">プロジェクトが見つかりません</h1>
+      }
+    </div>
+
+    @if (project(); as p) {
+      <div class="detail-layout">
+        <header class="detail-layout__head">
+          <div class="detail-layout__head-text">
+            <h1 class="detail-layout__title">{{ p.name }}</h1>
+            <p class="detail-layout__meta">{{ p.managementNumber }}</p>
+          </div>
+          @if (perm.can('dashboard.project')) {
+            <a class="btn btn--secondary detail-layout__new-task-btn" [routerLink]="['/projects', p.managementNumber, 'dashboard']"
+              >ダッシュボード</a
+            >
+          }
+          @if (perm.can('task.write')) {
+            <a
+              class="btn btn--primary detail-layout__new-task-btn"
+              [routerLink]="['/tasks', 'add']"
+              [queryParams]="{ project: p.managementNumber }"
+              >課題を新規登録</a
+            >
+          }
+        </header>
+        <div class="detail-card">
+          <section class="detail-section">
+            <h2 class="detail-section__title">基本</h2>
+            <dl class="detail-dl">
+              <div class="detail-dl__row detail-dl__row--block">
+                <dt>プロジェクト内容</dt>
+                <dd>{{ p.description || '—' }}</dd>
+              </div>
+              <div class="detail-dl__row">
+                <dt>担当部署</dt>
+                <dd>{{ p.departments.join('、') }}</dd>
+              </div>
+              <div class="detail-dl__row">
+                <dt>終了予定日</dt>
+                <dd>{{ p.endDate }}</dd>
+              </div>
+              <div class="detail-dl__row">
+                <dt>優先度</dt>
+                <dd>{{ p.priority }}</dd>
+              </div>
+              <div class="detail-dl__row">
+                <dt>ステータス</dt>
+                <dd>{{ p.status }}</dd>
+              </div>
+              <div class="detail-dl__row">
+                <dt>進捗率</dt>
+                <dd>{{ calculateProgressPercent(p) }}%</dd>
+              </div>
+              <div class="detail-dl__row">
+                <dt>承認者</dt>
+                <dd>{{ p.approver || '—' }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="detail-section">
+            <h2 class="detail-section__title">日程</h2>
+            <dl class="detail-dl">
+              <div class="detail-dl__row">
+                <dt>登録日</dt>
+                <dd>{{ p.registeredAt }}</dd>
+              </div>
+              <div class="detail-dl__row">
+                <dt>着手開始日</dt>
+                <dd>{{ p.workStartDate || '—' }}</dd>
+              </div>
+              <div class="detail-dl__row">
+                <dt>完了日</dt>
+                <dd>{{ p.completedAt || '—' }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="detail-section">
+            <h2 class="detail-section__title">参加メンバー</h2>
+            <div class="table-wrap">
+              <table class="detail-table">
+                <thead>
+                  <tr>
+                    <th scope="col">部署</th>
+                    <th scope="col">氏名</th>
+                    <th scope="col">役割</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (m of p.participants; track $index) {
+                    <tr>
+                      <td>{{ m.department }}</td>
+                      <td>{{ m.name }}</td>
+                      <td>{{ m.role }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="3">参加メンバーは登録されていません</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="detail-section">
+            <h2 class="detail-section__title">マイルストーン</h2>
+            @if (p.milestones.length === 0) {
+              <p class="detail-empty">マイルストーンはありません</p>
+            } @else {
+              <ul class="milestone-list">
+                @for (ms of p.milestones; track ms.title + (ms.targetDate ?? '')) {
+                  <li class="milestone-list__item">
+                    <span class="milestone-list__title">{{ ms.title }}</span>
+                    @if (ms.targetDate) {
+                      <span class="milestone-list__date">{{ ms.targetDate }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          <section class="detail-section">
+            <h2 class="detail-section__title">関連する課題</h2>
+            @if (relatedIssueTree().length === 0) {
+              <p class="detail-empty">関連する課題はありません</p>
+            } @else {
+              <div class="table-wrap">
+                <table class="detail-table detail-table--related-issues">
+                  <thead>
+                    <tr>
+                      <th scope="col">課題管理番号</th>
+                      <th scope="col">課題名</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (node of relatedIssueTree(); track node.issue.taskManagementNo + node.issue.name) {
+                      <tr
+                        class="issue-table_row issue-table_row--clickable"
+                        (click)="onRelatedIssueClick(node.issue.taskManagementNo)"
+                      >
+                        <td>{{ node.issue.taskManagementNo }}</td>
+                        <td>{{ node.issue.name }}</td>
+                      </tr>
+                      @for (child of node.children; track child.managementNo) {
+                        <tr
+                          class="issue-table_row issue-table_row--clickable issue-table_row--child"
+                          (click)="onRelatedIssueClick(child.managementNo)"
+                        >
+                          <td class="issue-table__child-mn">{{ child.managementNo }}</td>
+                          <td>{{ child.taskname }}</td>
+                        </tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </section>
+
+          <div class="detail-actions">
+            @if (perm.can('list.projects')) {
+              <a class="btn btn--secondary" routerLink="/projects/list">一覧へ</a>
+            }
+            @if (perm.can('project.manage')) {
+              <a class="btn btn--primary" [routerLink]="['/projects', p.managementNumber, 'edit']">編集</a>
+              <button type="button" class="btn btn--secondary" (click)="onArchiveClick()">アーカイブ</button>
+              <button type="button" class="btn btn--danger" (click)="onDeleteClick()">ゴミ箱へ</button>
+            }
+          </div>
+          @if (archiveConfirmVisible()) {
+            <div class="detail-delete-confirm" role="region" aria-label="プロジェクトのアーカイブの確認">
+              <p class="detail-delete-confirm__text">
+                このプロジェクトをアーカイブしますか？紐づく課題もまとめて非表示になります。設定のアーカイブ・ゴミ箱から復元できます。
+              </p>
+              <div class="detail-delete-confirm__actions">
+                <button type="button" class="btn btn--primary" (click)="confirmArchive()">アーカイブする</button>
+                <button type="button" class="btn btn--secondary" (click)="cancelArchiveConfirm()">やめる</button>
+              </div>
+            </div>
+          }
+          @if (deleteConfirmVisible()) {
+            <div class="detail-delete-confirm" role="region" aria-label="プロジェクトのゴミ箱移動の確認">
+              <p class="detail-delete-confirm__text">
+                このプロジェクトをゴミ箱へ移動しますか？紐づく課題もまとめて移動します。設定のアーカイブ・ゴミ箱のゴミ箱タブから復元できます。
+              </p>
+              <div class="detail-delete-confirm__actions">
+                <button type="button" class="btn btn--danger" (click)="confirmDelete()">ゴミ箱へ移動</button>
+                <button type="button" class="btn btn--secondary" (click)="cancelDeleteConfirm()">やめる</button>
+              </div>
+            </div>
+          }
+          @if (retentionFeedback()) {
+            <p class="detail-delete-feedback" role="alert">{{ retentionFeedback() }}</p>
+          }
+        </div>
+
+        <div class="detail-sidebar">
+          <aside class="update-panel" aria-labelledby="update-panel-heading">
+            <h2 id="update-panel-heading" class="update-panel__title">更新情報</h2>
+            <div class="update-panel__scroll" tabindex="0">
+              @for (entry of p.updateHistory; track entry.at + entry.by + $index) {
+                <article class="update-panel__entry">
+                  <p class="update-panel__summary">{{ formatUpdateLog(entry) }}</p>
+                  <dl class="update-panel__meta">
+                    <div class="update-panel__meta-row">
+                      <dt>更新日</dt>
+                      <dd>{{ formatUpdateHistoryAt(entry.at) }}</dd>
+                    </div>
+                    <div class="update-panel__meta-row">
+                      <dt>更新者</dt>
+                      <dd>{{ entry.by }}</dd>
+                    </div>
+                  </dl>
+                </article>
+              } @empty {
+                <p class="update-panel__empty">更新履歴はまだありません。</p>
+              }
+            </div>
+          </aside>
+
+          <section class="resource-panel" aria-labelledby="resource-panel-heading">
+            <div class="resource-panel__head">
+              <h2 id="resource-panel-heading" class="resource-panel__title">資料フォルダ</h2>
+              @if (!newFolderOpen()) {
+                <button
+                  type="button"
+                  class="resource-panel__add"
+                  (click)="openNewFolder()"
+                  aria-label="フォルダを追加"
+                >
+                  +
+                </button>
+              }
+            </div>
+
+            @if (newFolderOpen()) {
+              <div class="resource-panel__new-folder">
+                <label class="resource-panel__label" for="new-folder-name">フォルダ名</label>
+                <input
+                  id="new-folder-name"
+                  class="resource-panel__input"
+                  type="text"
+                  [value]="newFolderName()"
+                  (input)="setNewFolderNameFromEvent($event)"
+                  placeholder="例: 設計書"
+                />
+                <div class="resource-panel__inline-actions">
+                  <button type="button" class="btn btn--primary btn--sm" (click)="commitNewFolder(p.managementNumber)">
+                    作成
+                  </button>
+                  <button type="button" class="btn btn--secondary btn--sm" (click)="cancelNewFolder()">
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            }
+
+            <ul class="resource-folder-list">
+              @for (folder of p.resourceFolders; track folder.id) {
+                <li class="resource-folder">
+                  <div class="resource-folder__head">
+                    <span class="resource-folder__name">{{ folder.name }}</span>
+                    <span class="resource-folder__tools">
+                      <button type="button" class="resource-folder__tool" (click)="openEntryDraft(folder.id, 'url')">
+                        URL
+                      </button>
+                      <button type="button" class="resource-folder__tool" (click)="openEntryDraft(folder.id, 'file')">
+                        ファイル
+                      </button>
+                    </span>
+                  </div>
+
+                  @if (entryDraft(); as entDraft) {
+                    @if (entDraft.folderId === folder.id) {
+                      <div class="resource-panel__draft">
+                        <p class="resource-panel__draft-hint">
+                          {{ entDraft.kind === 'url' ? 'URL を追加' : 'ファイルをアップロード' }}
+                        </p>
+                        <input
+                          class="resource-panel__input"
+                          type="text"
+                          placeholder="表示名"
+                          [value]="entryDraftTitle()"
+                          (input)="setEntryDraftTitleFromEvent($event)"
+                        />
+                        @if (entDraft.kind === 'url') {
+                          <input
+                            class="resource-panel__input"
+                            type="url"
+                            inputmode="url"
+                            placeholder="https://"
+                            [value]="entryDraftHref()"
+                            (input)="setEntryDraftHrefFromEvent($event)"
+                          />
+                        } @else {
+                          <div class="resource-panel__file-pick">
+                            <input
+                              #entryFileInput
+                              class="resource-panel__file-input-native"
+                              type="file"
+                              (change)="onEntryDraftFileChange($event)"
+                              [disabled]="entryUploading()"
+                            />
+                            <button
+                              type="button"
+                              class="btn btn--secondary btn--sm resource-panel__file-pick-btn"
+                              [disabled]="entryUploading()"
+                              (click)="onEntryFilePickClick(entryFileInput)"
+                            >
+                              ファイルを選択
+                            </button>
+                            @if (entryDraftFile(); as picked) {
+                              <p class="resource-panel__file-pick-name">{{ picked.name }}</p>
+                            }
+                          </div>
+                        }
+                        @if (entryDraftError()) {
+                          <p class="resource-panel__draft-error" role="alert">{{ entryDraftError() }}</p>
+                        }
+                        <div class="resource-panel__inline-actions">
+                          <button
+                            type="button"
+                            class="btn btn--primary btn--sm"
+                            [disabled]="entryUploading()"
+                            (click)="commitEntryDraft(p.managementNumber)"
+                          >
+                            {{ entryUploading() ? 'アップロード中…' : '追加' }}
+                          </button>
+                          <button type="button" class="btn btn--secondary btn--sm" (click)="cancelEntryDraft()">
+                            キャンセル
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  }
+
+                  <ul class="resource-folder__entries">
+                    @for (e of folder.entries; track e.id) {
+                      <li class="resource-folder__entry">
+                        @if (e.kind === 'url' && e.href) {
+                          <a
+                            class="resource-folder__link"
+                            [href]="e.href"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >{{ e.title }}</a>
+                          <span class="resource-folder__badge" aria-hidden="true">URL</span>
+                        } @else if (e.kind === 'file' && e.href) {
+                          <a
+                            class="resource-folder__link"
+                            [href]="e.href"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download
+                            >{{ e.title }}</a>
+                          <span class="resource-folder__badge" aria-hidden="true">ファイル</span>
+                        } @else {
+                          <span class="resource-folder__file">{{ e.title }}</span>
+                          <span class="resource-folder__badge" aria-hidden="true">ファイル</span>
+                        }
+                      </li>
+                    }
+                  </ul>
+                  @if (folder.entries.length === 0 && entryDraft()?.folderId !== folder.id) {
+                    <p class="resource-folder__empty">URL またはファイルを追加できます</p>
+                  }
+                </li>
+              } @empty {
+                @if (!newFolderOpen()) {
+                  <li class="resource-folder-list__empty">フォルダはまだありません。「+」から作成してください。</li>
+                }
+              }
+            </ul>
+          </section>
+
+          <section class="chat-panel" aria-labelledby="chat-panel-heading">
+            <h2 id="chat-panel-heading" class="chat-panel__title">チャット</h2>
+
+            <div class="chat-panel__stream" #chatStream>
+              @for (root of chatRoots(); track root.id) {
+                <article
+                  class="chat-root"
+                  [class.chat-root--unread]="isChatThreadUnreadInDetail(root)"
+                  [id]="'chat-root-' + root.id"
+                >
+                  <header class="chat-root__head">
+                    <span class="chat-root__author">{{ root.authorName }}</span>
+                    <time class="chat-root__time" [attr.datetime]="root.createdAtIso">{{
+                      formatChatTime(root.createdAtIso)
+                    }}</time>
+                  </header>
+                  <p class="chat-root__body">
+                    @for (seg of bodySegments(root.bodyPlain); track $index) {
+                      @if (seg.kind === 'mention') {
+                        <span class="chat-mention">{{ seg.text }}</span>
+                      } @else {
+                        <span>{{ seg.text }}</span>
+                      }
+                    }
+                  </p>
+                  <div class="chat-root__actions">
+                    <button type="button" class="chat-root__thread-btn" (click)="toggleThread(root.id)">
+                      @if (isThreadExpanded(root.id)) {
+                        スレッドを閉じる
+                      } @else {
+                        スレッド（{{ threadReplyCount(root.id) }}）
+                      }
+                    </button>
+                  </div>
+
+                  @if (isThreadExpanded(root.id)) {
+                    <div class="chat-thread" role="region" [attr.aria-label]="'スレッド'">
+                      <ul class="chat-thread__list">
+                        @for (r of threadReplies(root.id); track r.id) {
+                          <li
+                            class="chat-thread__item"
+                            [class.chat-thread__item--unread]="isChatReplyUnreadInDetail(r, root.id)"
+                            [id]="'chat-msg-' + r.id"
+                          >
+                            <span class="chat-thread__author">{{ r.authorName }}</span>
+                            <time class="chat-thread__time" [attr.datetime]="r.createdAtIso">{{
+                              formatChatTime(r.createdAtIso)
+                            }}</time>
+                            <p class="chat-thread__body">
+                              @for (seg of bodySegments(r.bodyPlain); track $index) {
+                                @if (seg.kind === 'mention') {
+                                  <span class="chat-mention">{{ seg.text }}</span>
+                                } @else {
+                                  <span>{{ seg.text }}</span>
+                                }
+                              }
+                            </p>
+                          </li>
+                        }
+                      </ul>
+                      <div class="chat-composer chat-composer--thread">
+                        <div class="chat-composer__wrap">
+                          <textarea
+                            class="chat-composer__textarea"
+                            rows="2"
+                            [value]="threadDraft(root.id)"
+                            (input)="setThreadChatDraftFromEvent($event, root.id)"
+                            (keyup)="onChatKeyup($event, 'thread', root.id)"
+                            [attr.placeholder]="'返信を入力'"
+                          ></textarea>
+                          @if (mentionMenu()?.mode === 'thread' && mentionMenu()?.threadRootId === root.id && filteredMentionPick().length > 0) {
+                            <ul class="chat-mention-list" role="listbox">
+                              @for (name of filteredMentionPick(); track name) {
+                                <li role="option">
+                                  <button type="button" class="chat-mention-list__btn" (click)="pickMention(name)">
+                                    {{ name }}
+                                  </button>
+                                </li>
+                              }
+                            </ul>
+                          }
+                        </div>
+                        <button
+                          type="button"
+                          class="btn btn--primary btn--sm"
+                          (click)="submitThreadReply(p.managementNumber, root.id)"
+                        >
+                          返信
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </article>
+              } @empty {
+                <p class="chat-panel__empty">まだメッセージはありません。</p>
+              }
+            </div>
+
+            <div class="chat-composer chat-composer--main">
+              <div class="chat-composer__wrap">
+                <textarea
+                  class="chat-composer__textarea"
+                  rows="3"
+                  [value]="mainChatDraft()"
+                  (input)="setMainChatDraftFromEvent($event)"
+                  (keyup)="onChatKeyup($event, 'main')"
+                  placeholder="メッセージを入力"
+                ></textarea>
+                @if (mentionMenu()?.mode === 'main' && filteredMentionPick().length > 0) {
+                  <ul class="chat-mention-list" role="listbox">
+                    @for (name of filteredMentionPick(); track name) {
+                      <li role="option">
+                        <button type="button" class="chat-mention-list__btn" (click)="pickMention(name)">
+                          {{ name }}
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+              <button type="button" class="btn btn--primary" (click)="submitMainChat(p.managementNumber)">
+                送信
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    } @else {
+      <p class="detail-not-found">指定の管理番号のプロジェクトは存在しません。</p>
+      <a class="btn btn--secondary" routerLink="/projects/list">◂一覧へ戻る</a>
+    }
+  </main>
+</div>

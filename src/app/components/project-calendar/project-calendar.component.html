@@ -1,0 +1,304 @@
+<main class="main">
+  <div class="page-top">
+    <a class="page-top__back" routerLink="/projects/list">◂一覧へ戻る</a>
+    <a class="page-top__link" routerLink="/tasks/calendar">▾課題カレンダー</a>
+    <div class="page-top__title-row">
+      <h1 class="page-top__title">プロジェクト終了予定カレンダー</h1>
+      @if (perm.can('project.manage')) {
+        <button type="button" class="btn btn--primary btn--register" (click)="onRegister()">
+          プロジェクトの新規登録
+        </button>
+      }
+    </div>
+    <p class="page-top__meta">終了予定日ごとにプロジェクトを表示</p>
+  </div>
+
+  <section class="search-bar" aria-label="検索条件の表示と変更">
+    <button
+      type="button"
+      class="btn btn--secondary btn--search"
+      (click)="toggleSearchPanel()"
+      [attr.aria-expanded]="panelOpen()"
+      [attr.aria-controls]="panelOpen() ? 'pc-search-panel' : null"
+      aria-haspopup="dialog"
+    >
+      条件で検索する
+    </button>
+    <div class="search-bar__filters-row" aria-live="polite">
+      <div class="search-field">
+        <span class="search-field__label">[担当部署]</span>
+        <span class="search-field__value">{{ appliedDepartmentLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[参加メンバー]</span>
+        <span class="search-field__value">{{ appliedMemberLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[終了予定日]</span>
+        <span class="search-field__value">{{ appliedEndDateLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[優先度]</span>
+        <span class="search-field__value">{{ appliedPriorityLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[ステータス]</span>
+        <span class="search-field__value">{{ appliedStatusLabel() }}</span>
+      </div>
+    </div>
+  </section>
+
+  @if (panelOpen()) {
+    <div class="search-overlay" (click)="closePanelWithoutApply()">
+      <div
+        id="pc-search-panel"
+        class="search-panel"
+        role="dialog"
+        aria-label="検索条件の選択"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="search-panel__toolbar">
+          <button type="button" class="btn btn--primary" (click)="applySearch()">検索</button>
+          <button type="button" class="btn btn--secondary" (click)="closePanelWithoutApply()">キャンセル</button>
+          <button type="button" class="btn btn--ghost search-panel__clear" (click)="clearDraftFilters()">
+            条件をクリア
+          </button>
+          <app-filter-presets
+            [screen]="'project-calendar'"
+            [draftSnapshot]="draftFilterSnapshot()"
+            (applySnapshot)="onPresetApplied($event)"
+          />
+        </div>
+        <div class="search-panel__date-range" (click)="$event.stopPropagation()">
+          <span class="search-panel__date-range-label" id="pc-end-date-label">終了予定日</span>
+          <div class="search-panel__date-range-inputs" role="group" aria-labelledby="pc-end-date-label">
+            <input
+              type="date"
+              class="search-panel__date-input"
+              [value]="draftEndDateFrom()"
+              (input)="onDraftEndFromInput($event)"
+              aria-label="終了予定日 開始"
+            />
+            <span class="search-panel__date-sep" aria-hidden="true">～</span>
+            <input
+              type="date"
+              class="search-panel__date-input"
+              [value]="draftEndDateTo()"
+              (input)="onDraftEndToInput($event)"
+              aria-label="終了予定日 終了"
+            />
+          </div>
+        </div>
+        <div class="search-panel__filters" (click)="onFilterPanelAreaClick($event)">
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'department'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('department', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'department'"
+              [attr.aria-controls]="'filter-pc-dept'"
+              id="filter-pc-dept-trigger"
+            >
+              <span class="filter-dd__heading">担当部署</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftDepartments()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'department') {
+              <div class="filter-dd__menu" id="filter-pc-dept" role="group" aria-labelledby="filter-pc-dept-trigger">
+                @for (dept of departmentOptions; track dept) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftDepartmentSelected(dept)"
+                      (change)="onDraftDepartmentChange(dept, $event)"
+                    />
+                    {{ dept }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'member'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('member', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'member'"
+              [attr.aria-controls]="'filter-pc-member'"
+              id="filter-pc-member-trigger"
+            >
+              <span class="filter-dd__heading">参加メンバー</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftMembers()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'member') {
+              <div
+                class="filter-dd__menu"
+                id="filter-pc-member"
+                role="group"
+                aria-labelledby="filter-pc-member-trigger"
+              >
+                @for (m of memberOptions; track m) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftMemberSelected(m)"
+                      (change)="onDraftMemberChange(m, $event)"
+                    />
+                    {{ m }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'priority'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('priority', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'priority'"
+              [attr.aria-controls]="'filter-pc-priority'"
+              id="filter-pc-priority-trigger"
+            >
+              <span class="filter-dd__heading">優先度</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftPriorities()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'priority') {
+              <div
+                class="filter-dd__menu"
+                id="filter-pc-priority"
+                role="group"
+                aria-labelledby="filter-pc-priority-trigger"
+              >
+                @for (p of priorityOptions; track p) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftPrioritySelected(p)"
+                      (change)="onDraftPriorityChange(p, $event)"
+                    />
+                    {{ p }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'status'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('status', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'status'"
+              [attr.aria-controls]="'filter-pc-status'"
+              id="filter-pc-status-trigger"
+            >
+              <span class="filter-dd__heading">ステータス</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftStatuses()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'status') {
+              <div
+                class="filter-dd__menu"
+                id="filter-pc-status"
+                role="group"
+                aria-labelledby="filter-pc-status-trigger"
+              >
+                @for (st of statusOptions; track st) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftStatusSelected(st)"
+                      (change)="onDraftStatusChange(st, $event)"
+                    />
+                    {{ st }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="cal-toolbar">
+    <button type="button" class="cal-toolbar__btn" (click)="prevMonth()">前月</button>
+    <h2 class="cal-toolbar__month">{{ monthTitle() }}</h2>
+    <button type="button" class="cal-toolbar__btn" (click)="nextMonth()">次月</button>
+    <button type="button" class="cal-toolbar__btn cal-toolbar__btn--ghost" (click)="goThisMonth()">今月</button>
+  </div>
+
+  <div class="cal" role="grid" [attr.aria-label]="monthTitle() + ' の終了予定'">
+    <div class="cal__weekdays" role="row">
+      @for (label of weekdayLabels; track label; let i = $index) {
+        <div
+          class="cal__weekday"
+          [class.cal__weekday--sun]="i === 0"
+          [class.cal__weekday--sat]="i === 6"
+          role="columnheader"
+        >
+          {{ label }}
+        </div>
+      }
+    </div>
+    @for (w of monthModel().weeks; track weekTrack(w)) {
+      <div class="cal__week" role="row">
+        @for (cell of w.cells; track cell.trackId) {
+          <div
+            class="cal__day"
+            [class.cal__day--muted]="!cell.dateKey"
+            [class.cal__day--today]="cell.dateKey === todayDateKey()"
+            [class.cal__day--sat]="cell.dateKey && isCalendarSatTone(calendarDayTone(cell.dateKey))"
+            [class.cal__day--sun]="cell.dateKey && isCalendarSunTone(calendarDayTone(cell.dateKey))"
+            role="gridcell"
+            [attr.aria-label]="cellAriaLabel(cell)"
+          >
+            @if (cell.dayNum !== null) {
+              <span class="cal__day-num">{{ cell.dayNum }}</span>
+            }
+            @if (cell.dateKey) {
+              <div class="cal__events">
+                @for (proj of projectsOn(cell.dateKey); track proj.managementNumber) {
+                  <a class="cal-card" [routerLink]="['/projects', proj.managementNumber]">
+                    <span class="cal-card__line cal-card__line--mn">{{ proj.managementNumber }}</span>
+                    <span class="cal-card__line cal-card__line--name">{{ proj.name }}</span>
+                    <span class="cal-card__line cal-card__line--muted">{{ departmentsText(proj) }}</span>
+                    <span class="cal-card__line cal-card__line--row">
+                      <span class="cal-card__priority">{{ proj.priority }}</span>
+                      <span [class]="statusBadgeClasses(proj.status)">{{ proj.status }}</span>
+                    </span>
+                    <span class="cal-card__line cal-card__line--prog">進捗 {{ displayedProgressPercent(proj) }}%</span>
+                  </a>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</main>

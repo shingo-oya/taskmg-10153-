@@ -1,0 +1,396 @@
+:host {
+  display: block;
+  --bg-page: #f7f4f0;
+  --bg-card: #fffcfa;
+  --border: #ebe4dc;
+  --text: #4a4540;
+  --text-muted: #8a837a;
+  --btn: #6d8b6f;
+  --btn-hover: #5d7a5f;
+  --shadow: 0 8px 32px rgba(74, 69, 64, 0.07);
+  --shadow-btn: 0 2px 12px rgba(109, 139, 111, 0.28);
+  --error: #b85c5c;
+  --focus-ring: rgba(109, 139, 111, 0.28);
+  --app-btn-height: 2.75rem;
+  --app-btn-padding-x: 1.25rem;
+}
+
+.users-registered {
+  min-height: 100%;
+  background: var(--bg-page);
+}
+
+.page-top {
+  max-width: 56rem;
+  margin: 0 auto 1.25rem;
+  padding-inline: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.users-registered__error {
+  max-width: 56rem;
+  margin: 0 auto 0.75rem;
+  color: var(--error);
+  font-size: 0.9rem;
+}
+
+.page-top__back {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--btn);
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 0.85;
+    text-decoration: underline;
+  }
+}
+
+.page-top__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.main {
+  padding: 1.25rem 1.35rem 1.5rem;
+  min-height: calc(100vh - 27.75rem);
+  container-type: inline-size;
+  container-name: users-register;
+}
+
+.register-layout {
+  width: 100%;
+  max-width: 56rem;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) minmax(18rem, 1fr);
+  column-gap: clamp(1.25rem, 3vw, 2.5rem);
+  row-gap: 1.75rem;
+  align-items: start;
+}
+
+.form-card {
+  margin: 0;
+  width: 100%;
+  max-width: 24rem;
+  padding: 1.5rem 1.35rem 1.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.register-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.dept-page-link {
+  margin: 0;
+  width: 100%;
+  padding: 1.25rem 1.25rem 1.35rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.dept-page-link__heading {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.dept-page-link__lead {
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.dept-page-link__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--app-btn-height);
+  padding: 0 var(--app-btn-padding-x);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: #fff;
+  background: var(--btn);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-btn);
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+
+  &:hover {
+    background: var(--btn-hover);
+    box-shadow: 0 4px 16px rgba(109, 139, 111, 0.35);
+  }
+}
+
+.role-help {
+  margin: 0;
+  width: 100%;
+  padding: 1.25rem 1.25rem 1.35rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.role-help__heading {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.role-help__lead {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.role-help__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.role-help__item {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border);
+  background: #fff;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+
+  &--current {
+    border-color: #a8bfa8;
+    background: #f4f8f4;
+    box-shadow: 0 0 0 2px var(--focus-ring);
+  }
+}
+
+.role-help__name {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.35rem;
+}
+
+.role-help__text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.form {
+  display: block;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1rem;
+}
+
+.field {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.field__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.85rem;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: #fff;
+  color: var(--text);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #a8bfa8;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+}
+
+.field__error {
+  font-size: 0.8125rem;
+  color: var(--error);
+}
+
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.form-button {
+  appearance: none;
+  box-sizing: border-box;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1;
+  height: var(--app-btn-height);
+  min-height: var(--app-btn-height);
+  padding: 0 var(--app-btn-padding-x);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.form-button[type='submit'] {
+  border: 1px solid transparent;
+  background: var(--btn);
+  color: #fff;
+  box-shadow: var(--shadow-btn);
+
+  &:hover {
+    background: var(--btn-hover);
+    box-shadow: 0 4px 16px rgba(109, 139, 111, 0.35);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.form-button[type='button'] {
+  background: #fff;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  box-shadow: none;
+
+  &:hover {
+    background: #f5f2ed;
+    color: var(--text);
+  }
+}
+
+/* 設定サイドバー込みの 13.3 型（実効幅 ~900〜1000px）ではフォームの下に説明を積む */
+@container users-register (max-width: 62rem) {
+  .register-layout {
+    grid-template-columns: 1fr;
+    max-width: 36rem;
+    row-gap: 1.5rem;
+  }
+
+  .form-card {
+    max-width: none;
+  }
+
+  .register-sidebar {
+    gap: 1.25rem;
+  }
+
+  .role-help__lead,
+  .role-help__text {
+    font-size: 0.9375rem;
+    line-height: 1.65;
+  }
+
+  .dept-page-link__lead {
+    font-size: 0.875rem;
+  }
+}
+
+@container users-register (max-width: 26rem) {
+  .register-layout {
+    max-width: none;
+  }
+
+  .page-top {
+    margin-inline: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .register-layout {
+    grid-template-columns: 1fr;
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  .page-top {
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  .users-registered__error {
+    margin-inline: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    gap: 0.5rem;
+  }
+
+  .form-button {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}

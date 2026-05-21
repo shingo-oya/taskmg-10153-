@@ -1,0 +1,190 @@
+@if (snapshot(); as s) {
+  <div class="dash-page dash-page--fill org-dash">
+    <div class="dash-page__intro">
+      <div class="dash-page__intro-row">
+        <div class="dash-page__intro-main">
+          <h2 class="dash-page__title">全体ダッシュボード</h2>
+          <p class="dash-page__meta">基準日 {{ s.today }}</p>
+        </div>
+        <button type="button" class="dash-export-btn" (click)="exportCsv()">CSV出力</button>
+      </div>
+    </div>
+
+    <div class="dash-filters">
+      <label class="dash-filter">
+        <span class="dash-filter__label">部署</span>
+        <select class="dash-filter__select" [value]="department()" (change)="onDepartmentChange($event)">
+          <option value="">すべて</option>
+          @for (d of departmentOptions(); track d) {
+            <option [value]="d">{{ d }}</option>
+          }
+        </select>
+      </label>
+      <label class="dash-filter">
+        <span class="dash-filter__label">プロジェクト</span>
+        <select class="dash-filter__select" [value]="projectManagementNumber()" (change)="onProjectChange($event)">
+          <option value="">すべて</option>
+          @for (p of projectOptions(); track p.managementNumber) {
+            <option [value]="p.managementNumber">{{ p.managementNumber }} · {{ p.name }}</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    <div class="dash-summary">
+      <div class="dash-stat">
+        <span class="dash-stat__label">対象プロジェクト</span>
+        <span class="dash-stat__value">{{ s.projects.length }} 件</span>
+      </div>
+      <div class="dash-stat">
+        <span class="dash-stat__label">遅延プロジェクト</span>
+        <span class="dash-stat__value" [class.dash-stat__value--alert]="s.delayedCount > 0">{{
+          s.delayedCount
+        }}</span>
+      </div>
+    </div>
+
+    <div class="dash-grid dash-grid--org">
+      <div class="dash-col">
+        <section class="dash-panel dash-panel--fill" aria-labelledby="od-projects">
+          <h3 id="od-projects" class="dash-panel__title">プロジェクト一覧</h3>
+          <div class="dash-panel__body">
+            @if (s.projects.length === 0) {
+              <p class="dash-empty">該当するプロジェクトはありません。</p>
+            } @else {
+              <div class="dash-table-wrap">
+                <table class="dash-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">プロジェクト</th>
+                      <th scope="col">部署</th>
+                      <th scope="col">進捗</th>
+                      <th scope="col">終了予定</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (p of s.projects; track p.managementNumber) {
+                      <tr>
+                        <td>
+                          <a
+                            class="dash-table__link"
+                            [routerLink]="['/projects', p.managementNumber, 'dashboard']"
+                            >{{ p.name }}</a
+                          >
+                          @if (isProjectDelayedRow(p)) {
+                            <span class="dash-badge dash-badge--delayed">遅延</span>
+                          }
+                          <span class="dash-list__meta">{{ p.managementNumber }}</span>
+                        </td>
+                        <td>{{ projectDepartments(p) }}</td>
+                        <td>{{ projectProgress(p) }}%</td>
+                        <td>{{ p.endDate }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="dash-col dash-col--stack">
+        <section class="dash-panel dash-panel--split" aria-labelledby="od-today">
+          <h3 id="od-today" class="dash-panel__title">今日期限のプロジェクト</h3>
+          <div class="dash-panel__body">
+            @if (s.dueTodayProjects.length === 0) {
+              <p class="dash-empty">該当するプロジェクトはありません。</p>
+            } @else {
+              <ul class="dash-list">
+                @for (p of s.dueTodayProjects; track p.managementNumber) {
+                  <li class="dash-list__item">
+                    <a class="dash-list__link" [routerLink]="['/projects', p.managementNumber]">
+                      <span class="dash-list__primary">{{ p.name }}</span>
+                      <span class="dash-list__sub">{{ p.managementNumber }} · 終了予定 {{ p.endDate }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <section class="dash-panel dash-panel--split" aria-labelledby="od-overdue">
+          <h3 id="od-overdue" class="dash-panel__title">期限切れのプロジェクト</h3>
+          <div class="dash-panel__body">
+            @if (s.overdueProjects.length === 0) {
+              <p class="dash-empty">該当するプロジェクトはありません。</p>
+            } @else {
+              <ul class="dash-list">
+                @for (p of s.overdueProjects; track p.managementNumber) {
+                  <li class="dash-list__item">
+                    <a class="dash-list__link dash-list__link--alert" [routerLink]="['/projects', p.managementNumber]">
+                      <span class="dash-list__primary">{{ p.name }}</span>
+                      <span class="dash-list__sub">{{ p.managementNumber }} · 終了予定 {{ p.endDate }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <section class="dash-panel dash-panel--split" aria-labelledby="od-soon">
+          <h3 id="od-soon" class="dash-panel__title">近日期限のプロジェクト（7日以内）</h3>
+          <div class="dash-panel__body">
+            @if (s.dueSoonProjects.length === 0) {
+              <p class="dash-empty">該当するプロジェクトはありません。</p>
+            } @else {
+              <ul class="dash-list">
+                @for (p of s.dueSoonProjects; track p.managementNumber) {
+                  <li class="dash-list__item">
+                    <a class="dash-list__link" [routerLink]="['/projects', p.managementNumber]">
+                      <span class="dash-list__primary">{{ p.name }}</span>
+                      <span class="dash-list__sub">{{ p.managementNumber }} · 終了予定 {{ p.endDate }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="dash-col">
+        <section class="dash-panel dash-panel--fill" aria-labelledby="od-load">
+          <h3 id="od-load" class="dash-panel__title">メンバー別負荷（未完了課題数）</h3>
+          <div class="dash-panel__body">
+            @if (s.memberLoad.length === 0) {
+              <p class="dash-empty">集計対象の課題はありません。</p>
+            } @else {
+              <div class="member-load-chart">
+                <svg
+                  class="member-load-chart__svg"
+                  viewBox="0 0 200 200"
+                  role="img"
+                  [attr.aria-label]="memberLoadPieAriaLabel()"
+                >
+                  @for (slice of memberLoadPieSlices(); track slice.memberName) {
+                    <path [attr.d]="slice.path" [attr.fill]="slice.color">
+                      <title>{{ slice.memberName }}: {{ slice.openTaskCount }}件（{{ slice.percent }}%）</title>
+                    </path>
+                  }
+                </svg>
+                <ul class="member-load-chart__legend">
+                  @for (slice of memberLoadPieSlices(); track slice.memberName) {
+                    <li class="member-load-chart__legend-item">
+                      <span class="member-load-chart__swatch" [style.background-color]="slice.color"></span>
+                      <span class="member-load-chart__label">{{ slice.memberName }}</span>
+                      <span class="member-load-chart__value">{{ slice.openTaskCount }}件（{{ slice.percent }}%）</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,337 @@
+<div class="settings-templates">
+  <main class="main">
+    <div class="page-top">
+      <a class="page-top__back" routerLink="/settings">◂設定へ戻る</a>
+      <h1 class="page-top__title">テンプレート設定</h1>
+    </div>
+
+    <div class="tpl-tabs" role="tablist" aria-label="テンプレートの種類">
+      <button
+        type="button"
+        class="tpl-tabs__tab"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'project'"
+        [class.is-active]="activeTab() === 'project'"
+        (click)="setTab('project')"
+      >
+        プロジェクト
+      </button>
+      <button
+        type="button"
+        class="tpl-tabs__tab"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'task'"
+        [class.is-active]="activeTab() === 'task'"
+        (click)="setTab('task')"
+      >
+        課題
+      </button>
+    </div>
+
+    @if (activeTab() === 'project') {
+    <section class="card" aria-labelledby="add-project-tpl-heading">
+      <h2 id="add-project-tpl-heading" class="card__title">プロジェクトテンプレートを追加</h2>
+      <p class="card__lead">
+        プロジェクト名・プロジェクト内容・担当部署を保存します。プロジェクトの新規登録でテンプレートから入力できます。
+      </p>
+      <div class="card__form-grid">
+        <label class="field field--full">
+          <span class="field__label">テンプレート名</span>
+          <input
+            type="text"
+            class="field-input"
+            [value]="newProjectLabel()"
+            (input)="onNewProjectLabelInput($event)"
+            placeholder="例: 社内ツール立ち上げ"
+            maxlength="60"
+          />
+        </label>
+        <label class="field">
+          <span class="field__label">プロジェクト名</span>
+          <input
+            type="text"
+            class="field-input"
+            [value]="newProjectName()"
+            (input)="onNewProjectNameInput($event)"
+            maxlength="120"
+          />
+        </label>
+        <label class="field field--full">
+          <span class="field__label">プロジェクト内容</span>
+          <textarea
+            class="field-input field-input--area"
+            rows="3"
+            [value]="newProjectDescription()"
+            (input)="onNewProjectDescriptionInput($event)"
+            placeholder="概要・目的など"
+          ></textarea>
+        </label>
+        <div class="field field--full">
+          <span class="field__label">担当部署</span>
+          <p class="field-hint">複数選択できます。</p>
+          <select class="field-input" (change)="onNewProjectDeptPick($event)" aria-label="担当部署を追加">
+            <option value="">担当部署を追加</option>
+            @for (d of newProjectDeptsAvailable(); track d) {
+              <option [value]="d">{{ d }}</option>
+            }
+          </select>
+          @if (newProjectDeptsSorted().length > 0) {
+            <ul class="dept-chips">
+              @for (d of newProjectDeptsSorted(); track d) {
+                <li class="dept-chips__item">
+                  <span>{{ d }}</span>
+                  <button type="button" class="dept-chips__remove" (click)="removeNewProjectDept(d)" [attr.aria-label]="d + ' を削除'">×</button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+      <div class="card__actions">
+        <button type="button" class="btn-primary" (click)="onAddProject()">追加</button>
+      </div>
+      @if (newProjectFeedback() === 'added') {
+        <p class="card__msg card__msg--ok" role="status">プロジェクトテンプレートを追加しました。</p>
+      }
+      @if (newProjectFeedback() === 'empty') {
+        <p class="card__msg card__msg--error" role="alert">テンプレート名とプロジェクト名を入力してください。</p>
+      }
+      @if (newProjectFeedback() === 'duplicate') {
+        <p class="card__msg card__msg--error" role="alert">同じテンプレート名は既に登録されています。</p>
+      }
+    </section>
+
+    <section class="card" aria-labelledby="list-project-tpl-heading">
+      <h2 id="list-project-tpl-heading" class="card__title">登録済みのプロジェクトテンプレート</h2>
+      @if (projectTemplates().length === 0) {
+        <p class="card__empty">テンプレートがまだありません。</p>
+      } @else {
+        <ul class="preset-list">
+          @for (t of projectTemplates(); track t.id) {
+            <li class="preset-list__item">
+              @if (editingProjectId() === t.id) {
+                <div class="preset-list__edit">
+                  <div class="card__form-grid">
+                    <label class="field field--full">
+                      <span class="field__label">テンプレート名</span>
+                      <input type="text" class="field-input" [value]="editProjectLabel()" (input)="onEditProjectLabelInput($event)" maxlength="60" />
+                    </label>
+                    <label class="field">
+                      <span class="field__label">プロジェクト名</span>
+                      <input type="text" class="field-input" [value]="editProjectName()" (input)="onEditProjectNameInput($event)" maxlength="120" />
+                    </label>
+                    <label class="field field--full">
+                      <span class="field__label">プロジェクト内容</span>
+                      <textarea class="field-input field-input--area" rows="3" [value]="editProjectDescription()" (input)="onEditProjectDescriptionInput($event)"></textarea>
+                    </label>
+                    <div class="field field--full">
+                      <span class="field__label">担当部署</span>
+                      <select class="field-input" (change)="onEditProjectDeptPick($event)">
+                        <option value="">担当部署を追加</option>
+                        @for (d of editProjectDeptsAvailable(); track d) {
+                          <option [value]="d">{{ d }}</option>
+                        }
+                      </select>
+                      @if (editProjectDeptsSorted().length > 0) {
+                        <ul class="dept-chips">
+                          @for (d of editProjectDeptsSorted(); track d) {
+                            <li class="dept-chips__item">
+                              <span>{{ d }}</span>
+                              <button type="button" class="dept-chips__remove" (click)="removeEditProjectDept(d)">×</button>
+                            </li>
+                          }
+                        </ul>
+                      }
+                    </div>
+                  </div>
+                  <div class="preset-list__edit-actions">
+                    <button type="button" class="btn-primary btn-primary--sm" (click)="saveEditProject()">保存</button>
+                    <button type="button" class="btn-secondary" (click)="cancelEditProject()">キャンセル</button>
+                    <button type="button" class="btn-danger btn-danger--sm" (click)="requestDeleteProject(t.id)">削除</button>
+                  </div>
+                  @if (deleteProjectConfirmId() === t.id) {
+                    <div class="preset-list__delete-confirm">
+                      <p class="preset-list__delete-text">このテンプレートを削除しますか？</p>
+                      <div class="preset-list__delete-actions">
+                        <button type="button" class="btn-danger btn-danger--sm" (click)="confirmDeleteProject()">削除する</button>
+                        <button type="button" class="btn-secondary btn-secondary--sm" (click)="cancelDeleteProject()">やめる</button>
+                      </div>
+                    </div>
+                  }
+                  @if (editProjectFeedback() === 'empty') {
+                    <p class="preset-list__error" role="alert">テンプレート名とプロジェクト名を入力してください。</p>
+                  }
+                  @if (editProjectFeedback() === 'duplicate') {
+                    <p class="preset-list__error" role="alert">同じテンプレート名は既に登録されています。</p>
+                  }
+                </div>
+              } @else {
+                <div class="preset-list__row">
+                  <span class="preset-list__label">{{ projectSummary(t) }}</span>
+                  <button type="button" class="btn-secondary btn-secondary--sm" (click)="startEditProject(t)">編集</button>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+    }
+
+    @if (activeTab() === 'task') {
+    <section class="card" aria-labelledby="add-task-tpl-heading">
+      <h2 id="add-task-tpl-heading" class="card__title">課題テンプレートを追加</h2>
+      <p class="card__lead">
+        種別・課題名・課題内容・担当部署を保存します。課題の新規登録でテンプレートから入力できます。
+      </p>
+      <div class="card__form-grid">
+        <label class="field field--full">
+          <span class="field__label">テンプレート名</span>
+          <input
+            type="text"
+            class="field-input"
+            [value]="newTaskLabel()"
+            (input)="onNewTaskLabelInput($event)"
+            placeholder="例: 定例バグ対応"
+            maxlength="60"
+          />
+        </label>
+        <label class="field">
+          <span class="field__label">種別</span>
+          <select class="field-input" [value]="newTaskType()" (change)="onNewTaskTypeChange($event)">
+            <option value="">選択してください</option>
+            @for (type of taskTypeOptions(); track type) {
+              <option [value]="type">{{ type }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">課題名</span>
+          <input type="text" class="field-input" [value]="newTaskName()" (input)="onNewTaskNameInput($event)" maxlength="120" />
+        </label>
+        <label class="field field--full">
+          <span class="field__label">課題内容</span>
+          <textarea class="field-input field-input--area" rows="3" [value]="newTaskContent()" (input)="onNewTaskContentInput($event)"></textarea>
+        </label>
+        <div class="field field--full">
+          <span class="field__label">担当部署</span>
+          <p class="field-hint">複数選択できます。</p>
+          <select class="field-input" (change)="onNewTaskDeptPick($event)">
+            <option value="">担当部署を追加</option>
+            @for (d of newTaskDeptsAvailable(); track d) {
+              <option [value]="d">{{ d }}</option>
+            }
+          </select>
+          @if (newTaskDeptsSorted().length > 0) {
+            <ul class="dept-chips">
+              @for (d of newTaskDeptsSorted(); track d) {
+                <li class="dept-chips__item">
+                  <span>{{ d }}</span>
+                  <button type="button" class="dept-chips__remove" (click)="removeNewTaskDept(d)">×</button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+      <div class="card__actions">
+        <button type="button" class="btn-primary" (click)="onAddTask()">追加</button>
+      </div>
+      @if (newTaskFeedback() === 'added') {
+        <p class="card__msg card__msg--ok" role="status">課題テンプレートを追加しました。</p>
+      }
+      @if (newTaskFeedback() === 'empty') {
+        <p class="card__msg card__msg--error" role="alert">テンプレート名・種別・課題名・課題内容を入力してください。</p>
+      }
+      @if (newTaskFeedback() === 'duplicate') {
+        <p class="card__msg card__msg--error" role="alert">同じテンプレート名は既に登録されています。</p>
+      }
+    </section>
+
+    <section class="card" aria-labelledby="list-task-tpl-heading">
+      <h2 id="list-task-tpl-heading" class="card__title">登録済みの課題テンプレート</h2>
+      @if (taskTemplates().length === 0) {
+        <p class="card__empty">テンプレートがまだありません。</p>
+      } @else {
+        <ul class="preset-list">
+          @for (t of taskTemplates(); track t.id) {
+            <li class="preset-list__item">
+              @if (editingTaskId() === t.id) {
+                <div class="preset-list__edit">
+                  <div class="card__form-grid">
+                    <label class="field field--full">
+                      <span class="field__label">テンプレート名</span>
+                      <input type="text" class="field-input" [value]="editTaskLabel()" (input)="onEditTaskLabelInput($event)" maxlength="60" />
+                    </label>
+                    <label class="field">
+                      <span class="field__label">種別</span>
+                      <select class="field-input" [value]="editTaskType()" (change)="onEditTaskTypeChange($event)">
+                        <option value="">選択してください</option>
+                        @for (type of taskTypeOptions(); track type) {
+                          <option [value]="type">{{ type }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span class="field__label">課題名</span>
+                      <input type="text" class="field-input" [value]="editTaskName()" (input)="onEditTaskNameInput($event)" maxlength="120" />
+                    </label>
+                    <label class="field field--full">
+                      <span class="field__label">課題内容</span>
+                      <textarea class="field-input field-input--area" rows="3" [value]="editTaskContent()" (input)="onEditTaskContentInput($event)"></textarea>
+                    </label>
+                    <div class="field field--full">
+                      <span class="field__label">担当部署</span>
+                      <select class="field-input" (change)="onEditTaskDeptPick($event)">
+                        <option value="">担当部署を追加</option>
+                        @for (d of editTaskDeptsAvailable(); track d) {
+                          <option [value]="d">{{ d }}</option>
+                        }
+                      </select>
+                      @if (editTaskDeptsSorted().length > 0) {
+                        <ul class="dept-chips">
+                          @for (d of editTaskDeptsSorted(); track d) {
+                            <li class="dept-chips__item">
+                              <span>{{ d }}</span>
+                              <button type="button" class="dept-chips__remove" (click)="removeEditTaskDept(d)">×</button>
+                            </li>
+                          }
+                        </ul>
+                      }
+                    </div>
+                  </div>
+                  <div class="preset-list__edit-actions">
+                    <button type="button" class="btn-primary btn-primary--sm" (click)="saveEditTask()">保存</button>
+                    <button type="button" class="btn-secondary" (click)="cancelEditTask()">キャンセル</button>
+                    <button type="button" class="btn-danger btn-danger--sm" (click)="requestDeleteTask(t.id)">削除</button>
+                  </div>
+                  @if (deleteTaskConfirmId() === t.id) {
+                    <div class="preset-list__delete-confirm">
+                      <p class="preset-list__delete-text">このテンプレートを削除しますか？</p>
+                      <div class="preset-list__delete-actions">
+                        <button type="button" class="btn-danger btn-danger--sm" (click)="confirmDeleteTask()">削除する</button>
+                        <button type="button" class="btn-secondary btn-secondary--sm" (click)="cancelDeleteTask()">やめる</button>
+                      </div>
+                    </div>
+                  }
+                  @if (editTaskFeedback() === 'empty') {
+                    <p class="preset-list__error" role="alert">テンプレート名・種別・課題名・課題内容を入力してください。</p>
+                  }
+                  @if (editTaskFeedback() === 'duplicate') {
+                    <p class="preset-list__error" role="alert">同じテンプレート名は既に登録されています。</p>
+                  }
+                </div>
+              } @else {
+                <div class="preset-list__row">
+                  <span class="preset-list__label">{{ taskSummary(t) }}</span>
+                  <button type="button" class="btn-secondary btn-secondary--sm" (click)="startEditTask(t)">編集</button>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+    }
+  </main>
+</div>

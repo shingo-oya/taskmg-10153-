@@ -1,0 +1,112 @@
+:host {
+  display: block;
+  --text: #4a4540;
+  --text-muted: #8a837a;
+  --border: #ebe4dc;
+  --btn: #6d8b6f;
+}
+
+.page-top {
+  margin: 0 0 1.25rem;
+}
+
+.page-top__back {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--btn);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.page-top__title {
+  margin: 0.35rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.page-top__lead {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.audit-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.audit-tabs__tab {
+  appearance: none;
+  margin: 0;
+  padding: 0.55rem 1rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+
+  &.is-active {
+    color: var(--btn);
+    border-bottom-color: var(--btn);
+  }
+
+  &:hover:not(.is-active) {
+    color: var(--text);
+  }
+}
+
+.audit-panel__empty {
+  margin: 0;
+  padding: 1rem 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.audit-panel__table-wrap {
+  overflow-x: auto;
+}
+
+.audit-panel__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  th,
+  td {
+    padding: 0.55rem 0.65rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  td {
+    color: var(--text);
+  }
+}
+
+.audit-panel__primary {
+  display: block;
+}
+
+.audit-panel__sub {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}

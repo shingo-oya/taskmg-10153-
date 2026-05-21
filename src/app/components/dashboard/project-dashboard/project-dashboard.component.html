@@ -1,0 +1,167 @@
+@if (snapshot(); as s) {
+  <div class="dash-page dash-page--fill project-dash">
+    <div class="dash-page__intro">
+      <div class="dash-page__intro-row">
+        <div class="dash-page__intro-main">
+          <a class="project-dash__back" [routerLink]="['/projects', s.project.managementNumber]">◂プロジェクト詳細</a>
+          <h2 class="dash-page__title">{{ s.project.name }}</h2>
+          <p class="dash-page__meta">
+            {{ s.project.managementNumber }} · 基準日 {{ s.today }}
+            @if (isDelayed()) {
+              <span class="dash-badge dash-badge--delayed">遅延</span>
+            }
+          </p>
+        </div>
+        <button type="button" class="dash-export-btn" (click)="exportCsv()">CSV出力</button>
+      </div>
+      <div class="dash-summary">
+        <div class="dash-stat">
+          <span class="dash-stat__label">プロジェクト進捗率</span>
+          <span class="dash-stat__value">{{ s.progressPercent }}%</span>
+          <div class="dash-progress-bar" aria-hidden="true">
+            <div class="dash-progress-bar__fill" [style.width.%]="s.progressPercent"></div>
+          </div>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat__label">紐づく課題</span>
+          <span class="dash-stat__value">{{ s.tasks.length }} 件</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-grid dash-grid--project">
+      <div class="dash-col">
+        <section class="dash-panel dash-panel--fill" aria-labelledby="pd-tasks">
+          <h3 id="pd-tasks" class="dash-panel__title">課題一覧（進捗率）</h3>
+          <div class="dash-panel__body">
+            @if (s.tasks.length === 0) {
+              <p class="dash-empty">紐づく課題はありません。</p>
+            } @else {
+              <div class="dash-table-wrap">
+                <table class="dash-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">課題</th>
+                      <th scope="col">ステータス</th>
+                      <th scope="col">進捗</th>
+                      <th scope="col">終了予定</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (t of s.tasks; track t.managementNo) {
+                      <tr>
+                        <td>
+                          <a class="dash-table__link" [routerLink]="['/tasks', t.managementNo]">{{ taskLine(t) }}</a>
+                        </td>
+                        <td>{{ t.status }}</td>
+                        <td>{{ taskProgressPercent(t) }}%</td>
+                        <td>{{ t.endDate }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="dash-col dash-col--stack">
+        <section class="dash-panel dash-panel--split" aria-labelledby="pd-today">
+          <h3 id="pd-today" class="dash-panel__title">今日期限の課題</h3>
+          <div class="dash-panel__body">
+            @if (s.dueToday.length === 0) {
+              <p class="dash-empty">該当する課題はありません。</p>
+            } @else {
+              <ul class="dash-list">
+                @for (t of s.dueToday; track t.managementNo) {
+                  <li class="dash-list__item">
+                    <a class="dash-list__link" [routerLink]="['/tasks', t.managementNo]">
+                      <span class="dash-list__primary">{{ taskLine(t) }}</span>
+                      <span class="dash-list__sub">{{ t.status }} · {{ taskProgressPercent(t) }}%</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <section class="dash-panel dash-panel--split" aria-labelledby="pd-overdue">
+          <h3 id="pd-overdue" class="dash-panel__title">期限切れの課題</h3>
+          <div class="dash-panel__body">
+            @if (s.overdue.length === 0) {
+              <p class="dash-empty">該当する課題はありません。</p>
+            } @else {
+              <ul class="dash-list">
+                @for (t of s.overdue; track t.managementNo) {
+                  <li class="dash-list__item">
+                    <a class="dash-list__link dash-list__link--alert" [routerLink]="['/tasks', t.managementNo]">
+                      <span class="dash-list__primary">{{ taskLine(t) }}</span>
+                      <span class="dash-list__sub">{{ t.status }} · 終了予定 {{ t.endDate }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <section class="dash-panel dash-panel--split" aria-labelledby="pd-soon">
+          <h3 id="pd-soon" class="dash-panel__title">近日期限の課題（7日以内）</h3>
+          <div class="dash-panel__body">
+            @if (s.dueSoon.length === 0) {
+              <p class="dash-empty">該当する課題はありません。</p>
+            } @else {
+              <ul class="dash-list">
+                @for (t of s.dueSoon; track t.managementNo) {
+                  <li class="dash-list__item">
+                    <a class="dash-list__link" [routerLink]="['/tasks', t.managementNo]">
+                      <span class="dash-list__primary">{{ taskLine(t) }}</span>
+                      <span class="dash-list__sub">終了予定 {{ t.endDate }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="dash-col">
+        <section class="dash-panel dash-panel--fill" aria-labelledby="pd-load">
+          <h3 id="pd-load" class="dash-panel__title">メンバー別負荷（未完了課題数）</h3>
+          <div class="dash-panel__body">
+            @if (s.memberLoad.length === 0) {
+              <p class="dash-empty">集計対象の課題はありません。</p>
+            } @else {
+              <div class="dash-table-wrap">
+                <table class="dash-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">メンバー</th>
+                      <th scope="col">件数</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of s.memberLoad; track row.memberName) {
+                      <tr>
+                        <td>{{ row.memberName }}</td>
+                        <td>{{ row.openTaskCount }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+} @else {
+  <div class="dash-page">
+    <p class="dash-empty">プロジェクトが見つかりません。</p>
+    <a routerLink="/projects/list">プロジェクト一覧へ</a>
+  </div>
+}

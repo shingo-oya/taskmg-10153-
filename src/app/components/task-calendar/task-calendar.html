@@ -1,0 +1,344 @@
+<main class="main">
+  <div class="page-top">
+    <a class="page-top__back" routerLink="/tasks/list">◂一覧へ戻る</a>
+    <a class="page-top__link" routerLink="/projects/calendar">▾プロジェクトカレンダー</a>
+    <a class="page-top__link" routerLink="/tasks/kanban">▾カンバン</a>
+    <a class="page-top__link" routerLink="/tasks/gantt">▾ガントチャート</a>
+    <div class="page-top__title-row">
+      <h1 class="page-top__title">課題終了予定カレンダー</h1>
+      @if (perm.can('task.write')) {
+        <button type="button" class="btn btn--primary btn--register" (click)="onRegister()">
+          課題の新規登録
+        </button>
+      }
+    </div>
+    <p class="page-top__meta">終了予定日ごとに課題を表示</p>
+  </div>
+
+  <section class="search-bar" aria-label="検索条件の表示と変更">
+    <button
+      type="button"
+      class="btn btn--secondary btn--search"
+      (click)="toggleSearchPanel()"
+      [attr.aria-expanded]="panelOpen()"
+      [attr.aria-controls]="panelOpen() ? 'tc-search-panel' : null"
+      aria-haspopup="dialog"
+    >
+      条件で検索する
+    </button>
+    <div class="search-bar__filters-row" aria-live="polite">
+      <div class="search-field">
+        <span class="search-field__label">[種別]</span>
+        <span class="search-field__value">{{ appliedTypeLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[担当部署]</span>
+        <span class="search-field__value">{{ appliedDepartmentLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[担当者]</span>
+        <span class="search-field__value">{{ appliedMemberLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[終了予定日]</span>
+        <span class="search-field__value">{{ appliedEndDateLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[優先度]</span>
+        <span class="search-field__value">{{ appliedPriorityLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[ステータス]</span>
+        <span class="search-field__value">{{ appliedStatusLabel() }}</span>
+      </div>
+    </div>
+  </section>
+
+  @if (panelOpen()) {
+    <div class="search-overlay" (click)="closePanelWithoutApply()">
+      <div
+        id="tc-search-panel"
+        class="search-panel"
+        role="dialog"
+        aria-label="検索条件の選択"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="search-panel__toolbar">
+          <button type="button" class="btn btn--primary" (click)="applySearch()">検索</button>
+          <button type="button" class="btn btn--secondary" (click)="closePanelWithoutApply()">キャンセル</button>
+          <button type="button" class="btn btn--ghost search-panel__clear" (click)="clearDraftFilters()">
+            条件をクリア
+          </button>
+          <app-filter-presets
+            [screen]="'task-calendar'"
+            [draftSnapshot]="draftFilterSnapshot()"
+            (applySnapshot)="onPresetApplied($event)"
+          />
+        </div>
+        <div class="search-panel__date-range" (click)="$event.stopPropagation()">
+          <span class="search-panel__date-range-label" id="tc-end-date-label">終了予定日</span>
+          <div class="search-panel__date-range-inputs" role="group" aria-labelledby="tc-end-date-label">
+            <input
+              type="date"
+              class="search-panel__date-input"
+              [value]="draftEndDateFrom()"
+              (input)="onDraftEndFromInput($event)"
+              aria-label="終了予定日 開始"
+            />
+            <span class="search-panel__date-sep" aria-hidden="true">～</span>
+            <input
+              type="date"
+              class="search-panel__date-input"
+              [value]="draftEndDateTo()"
+              (input)="onDraftEndToInput($event)"
+              aria-label="終了予定日 終了"
+            />
+          </div>
+        </div>
+        <div class="search-panel__filters" (click)="onFilterPanelAreaClick($event)">
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'type'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('type', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'type'"
+              [attr.aria-controls]="'filter-tc-type'"
+              id="filter-tc-type-trigger"
+            >
+              <span class="filter-dd__heading">種別</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftTypes()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'type') {
+              <div class="filter-dd__menu" id="filter-tc-type" role="group" aria-labelledby="filter-tc-type-trigger">
+                @for (ty of typeOptions; track ty) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftTypeSelected(ty)"
+                      (change)="onDraftTypeChange(ty, $event)"
+                    />
+                    {{ ty }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'department'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('department', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'department'"
+              [attr.aria-controls]="'filter-tc-dept'"
+              id="filter-tc-dept-trigger"
+            >
+              <span class="filter-dd__heading">担当部署</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftDepartments()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'department') {
+              <div class="filter-dd__menu" id="filter-tc-dept" role="group" aria-labelledby="filter-tc-dept-trigger">
+                @for (dept of departmentOptions; track dept) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftDepartmentSelected(dept)"
+                      (change)="onDraftDepartmentChange(dept, $event)"
+                    />
+                    {{ dept }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'member'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('member', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'member'"
+              [attr.aria-controls]="'filter-tc-member'"
+              id="filter-tc-member-trigger"
+            >
+              <span class="filter-dd__heading">担当者</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftMembers()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'member') {
+              <div
+                class="filter-dd__menu"
+                id="filter-tc-member"
+                role="group"
+                aria-labelledby="filter-tc-member-trigger"
+              >
+                @for (m of memberOptions; track m) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftMemberSelected(m)"
+                      (change)="onDraftMemberChange(m, $event)"
+                    />
+                    {{ m }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'priority'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('priority', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'priority'"
+              [attr.aria-controls]="'filter-tc-priority'"
+              id="filter-tc-priority-trigger"
+            >
+              <span class="filter-dd__heading">優先度</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftPriorities()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'priority') {
+              <div
+                class="filter-dd__menu"
+                id="filter-tc-priority"
+                role="group"
+                aria-labelledby="filter-tc-priority-trigger"
+              >
+                @for (p of priorityOptions; track p) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftPrioritySelected(p)"
+                      (change)="onDraftPriorityChange(p, $event)"
+                    />
+                    {{ p }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'status'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('status', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'status'"
+              [attr.aria-controls]="'filter-tc-status'"
+              id="filter-tc-status-trigger"
+            >
+              <span class="filter-dd__heading">ステータス</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftStatuses()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'status') {
+              <div
+                class="filter-dd__menu"
+                id="filter-tc-status"
+                role="group"
+                aria-labelledby="filter-tc-status-trigger"
+              >
+                @for (st of statusOptions; track st) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftStatusSelected(st)"
+                      (change)="onDraftStatusChange(st, $event)"
+                    />
+                    {{ st }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="cal-toolbar">
+    <button type="button" class="cal-toolbar__btn" (click)="prevMonth()">前月</button>
+    <h2 class="cal-toolbar__month">{{ monthTitle() }}</h2>
+    <button type="button" class="cal-toolbar__btn" (click)="nextMonth()">次月</button>
+    <button type="button" class="cal-toolbar__btn cal-toolbar__btn--ghost" (click)="goThisMonth()">今月</button>
+  </div>
+
+  <div class="cal" role="grid" [attr.aria-label]="monthTitle() + ' の終了予定'">
+    <div class="cal__weekdays" role="row">
+      @for (label of weekdayLabels; track label; let i = $index) {
+        <div
+          class="cal__weekday"
+          [class.cal__weekday--sun]="i === 0"
+          [class.cal__weekday--sat]="i === 6"
+          role="columnheader"
+        >
+          {{ label }}
+        </div>
+      }
+    </div>
+    @for (w of monthModel().weeks; track weekTrack(w)) {
+      <div class="cal__week" role="row">
+        @for (cell of w.cells; track cell.trackId) {
+          <div
+            class="cal__day"
+            [class.cal__day--muted]="!cell.dateKey"
+            [class.cal__day--today]="cell.dateKey === todayDateKey()"
+            [class.cal__day--sat]="cell.dateKey && isCalendarSatTone(calendarDayTone(cell.dateKey))"
+            [class.cal__day--sun]="cell.dateKey && isCalendarSunTone(calendarDayTone(cell.dateKey))"
+            role="gridcell"
+            [attr.aria-label]="cellAriaLabel(cell)"
+          >
+            @if (cell.dayNum !== null) {
+              <span class="cal__day-num">{{ cell.dayNum }}</span>
+            }
+            @if (cell.dateKey) {
+              <div class="cal__events">
+                @for (task of tasksOn(cell.dateKey); track task.managementNo) {
+                  <a class="cal-card" [routerLink]="['/tasks', task.managementNo]">
+                    <span class="cal-card__line cal-card__line--mn">{{ task.managementNo }}</span>
+                    <span class="cal-card__line cal-card__line--name">{{ task.taskname }}</span>
+                    <span class="cal-card__line cal-card__line--muted">{{ departmentsText(task) }}</span>
+                    <span class="cal-card__line cal-card__line--row">
+                      <span class="cal-card__priority">{{ task.priority }}</span>
+                      <span [class]="statusBadgeClasses(task.status)">{{ task.status }}</span>
+                    </span>
+                    <span class="cal-card__line cal-card__line--prog">進捗 {{ displayedProgressPercent(task) }}%</span>
+                  </a>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</main>

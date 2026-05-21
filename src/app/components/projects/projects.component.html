@@ -1,0 +1,125 @@
+<div class="projects-page">
+  @if (menuOpen) {
+    <div class="menu-backdrop" (click)="closeMenu()" aria-hidden="true"></div>
+  }
+  <nav class="side-menu" [class.is-open]="menuOpen" aria-label="メインメニュー">
+    <div class="side-menu__body">
+      <ul class="side-menu-list">
+      @if (perm.can('dashboard.my')) {
+        <li>
+          <a
+            routerLink="/dashboard/my"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closeMenu()"
+            >マイページ</a
+          >
+        </li>
+      }
+      @if (perm.can('list.projects')) {
+        <li>
+          <a
+            routerLink="/projects/list"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closeMenu()"
+            >プロジェクト一覧</a
+          >
+        </li>
+      } @else if (guestProjectLink(); as projectLink) {
+        <li>
+          <a
+            [routerLink]="projectLink"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: false }"
+            (click)="closeMenu()"
+            >プロジェクト</a
+          >
+        </li>
+      }
+      @if (perm.can('list.tasks')) {
+        <li>
+          <a
+            routerLink="/tasks/list"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closeMenu()"
+            >課題一覧</a
+          >
+        </li>
+        <li>
+          <a
+            routerLink="/tasks/kanban"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closeMenu()"
+            >カンバン</a
+          >
+        </li>
+        <li>
+          <a
+            routerLink="/projects/calendar"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closeMenu()"
+            >カレンダー</a
+          >
+        </li>
+        <li>
+          <a
+            routerLink="/tasks/gantt"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closeMenu()"
+            >ガントチャート</a
+          >
+        </li>
+      }
+      @if (perm.can('dashboard.org')) {
+        <li>
+          <a
+            routerLink="/dashboard/org"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closeMenu()"
+            >ダッシュボード</a
+          >
+        </li>
+      }
+      <li>
+        <a
+          routerLink="/settings"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: false }"
+          (click)="closeMenu()"
+          >設定</a
+        >
+      </li>
+      </ul>
+    </div>
+    <div class="side-menu__footer">
+      <button type="button" class="side-menu-logout" (click)="logout()">ログアウト</button>
+    </div>
+  </nav>
+
+  <header class="header">
+    <div class="header-start">
+      <button
+        type="button"
+        class="menu-toggle"
+        (click)="toggleMenu()"
+        [attr.aria-expanded]="menuOpen"
+        [attr.aria-label]="menuOpen ? 'メニューを閉じる' : 'メニューを開く'"
+      >
+        <span class="menu-toggle-line" aria-hidden="true"></span>
+        <span class="menu-toggle-line" aria-hidden="true"></span>
+        <span class="menu-toggle-line" aria-hidden="true"></span>
+      </button>
+      <h1>プロジェクト</h1>
+    </div>
+  </header>
+
+  <div class="projects-outlet">
+    <router-outlet />
+  </div>
+</div>

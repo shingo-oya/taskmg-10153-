@@ -1,0 +1,246 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  --bg-page: #f7f4f0;
+  --bg-card: #fffcfa;
+  --border: #ebe4dc;
+  --text: #4a4540;
+  --text-muted: #8a837a;
+  --btn: #6d8b6f;
+  --alert: #b85c5c;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 1rem 1.35rem 1.1rem;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.page-intro {
+  flex-shrink: 0;
+  margin-bottom: 0.85rem;
+}
+
+.page-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.page-meta {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.dash-grid {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.dash-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dash-panel {
+  padding: 0.85rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(74, 69, 64, 0.05);
+  min-height: 0;
+
+  &--fill {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  &--split {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+}
+
+.dash-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+
+.dash-panel__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.dash-panel__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.5rem;
+  flex-shrink: 0;
+
+  .dash-panel--fill & {
+    margin-bottom: 0;
+  }
+
+  .dash-panel__head & {
+    margin-bottom: 0;
+  }
+
+  .dash-panel--split & {
+    margin-bottom: 0.5rem;
+  }
+}
+
+.dash-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--btn);
+  border-radius: 999px;
+}
+
+.dash-mark-read {
+  flex-shrink: 0;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--btn);
+  background: transparent;
+  border: 1px solid var(--btn);
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(109, 139, 111, 0.12);
+  }
+}
+
+.dash-empty {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.dash-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &--compact .dash-list__body {
+    display: none;
+  }
+}
+
+.dash-list__item {
+  border-top: 1px solid var(--border);
+
+  &:first-child {
+    border-top: none;
+  }
+
+  &--unread {
+    background: rgba(109, 139, 111, 0.06);
+  }
+}
+
+.dash-list__link {
+  display: block;
+  padding: 0.55rem 0.15rem;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 6px;
+
+  &:hover {
+    background: rgba(235, 228, 220, 0.45);
+  }
+
+  &--alert .dash-list__primary {
+    color: var(--alert);
+  }
+
+  &--unread .dash-list__primary {
+    font-weight: 700;
+  }
+}
+
+.dash-list__meta {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dash-list__primary {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--btn);
+  line-height: 1.4;
+}
+
+.dash-list__sub {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.dash-list__body {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+@media (max-width: 1280px) {
+  .dash-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+  }
+}

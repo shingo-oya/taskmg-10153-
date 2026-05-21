@@ -1,0 +1,35 @@
+:host {
+  display: block;
+}
+
+.resource-panel__file-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.resource-panel__file-input-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.resource-panel__file-pick-btn {
+  flex-shrink: 0;
+}
+
+.resource-panel__file-pick-name {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #3d3832;
+  word-break: break-all;
+}

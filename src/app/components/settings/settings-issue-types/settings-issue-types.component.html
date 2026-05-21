@@ -1,0 +1,188 @@
+<div class="settings-issue-types">
+
+  <main class="main">
+
+    <div class="page-top">
+
+      <a class="page-top__back" routerLink="/settings">◂設定へ戻る</a>
+
+      <h1 class="page-top__title">課題種別設定</h1>
+
+    </div>
+
+
+
+    <section class="card" aria-labelledby="add-issue-type-heading">
+
+      <h2 id="add-issue-type-heading" class="card__title">種別を追加</h2>
+
+      <p class="card__lead">種別の内容を登録します。課題の新規登録・編集の種別選択で利用できます。</p>
+
+      <div class="card__form-grid">
+
+        <label class="field">
+
+          <span class="field__label">種別の内容</span>
+
+          <input
+
+            type="text"
+
+            class="field-input"
+
+            [value]="newContent()"
+
+            (input)="onNewContentInput($event)"
+
+            placeholder="例: 課題、バグ、改善"
+
+            maxlength="40"
+
+            aria-label="種別の内容"
+
+          />
+
+        </label>
+
+      </div>
+
+      <div class="card__actions">
+
+        <button type="button" class="btn-primary" (click)="onAdd()">追加</button>
+
+      </div>
+
+      @if (newFeedback() === 'added') {
+
+        <p class="card__msg card__msg--ok" role="status">種別を追加しました。</p>
+
+      }
+
+      @if (newFeedback() === 'empty') {
+
+        <p class="card__msg card__msg--error" role="alert">種別の内容を入力してください。</p>
+
+      }
+
+      @if (newFeedback() === 'duplicate') {
+
+        <p class="card__msg card__msg--error" role="alert">同じ種別は既に登録されています。</p>
+
+      }
+
+    </section>
+
+
+
+    <section class="card" aria-labelledby="list-issue-type-heading">
+
+      <h2 id="list-issue-type-heading" class="card__title">登録済みの種別</h2>
+
+      @if (presets().length === 0) {
+
+        <p class="card__empty">種別がまだありません。</p>
+
+      } @else {
+
+        <ul class="preset-list">
+
+          @for (preset of presets(); track preset.id) {
+
+            <li class="preset-list__item">
+
+              @if (editingId() === preset.id) {
+
+                <div class="preset-list__edit">
+
+                  <label class="field">
+
+                    <span class="field__label">種別の内容</span>
+
+                    <input
+
+                      type="text"
+
+                      class="field-input"
+
+                      [value]="editContent()"
+
+                      (input)="onEditContentInput($event)"
+
+                      maxlength="40"
+
+                    />
+
+                  </label>
+
+                  <div class="preset-list__edit-actions">
+
+                    <button type="button" class="btn-primary btn-primary--sm" (click)="saveEdit()">保存</button>
+
+                    <button type="button" class="btn-secondary" (click)="cancelEdit()">キャンセル</button>
+
+                    <button type="button" class="btn-danger btn-danger--sm" (click)="requestDelete(preset.id)">
+
+                      削除
+
+                    </button>
+
+                  </div>
+
+                </div>
+
+                @if (deleteConfirmId() === preset.id) {
+
+                  <div class="preset-list__delete-confirm" role="region" aria-label="種別の削除の確認">
+
+                    <p class="preset-list__delete-text">この種別を削除しますか？</p>
+
+                    <div class="preset-list__delete-actions">
+
+                      <button type="button" class="btn-danger btn-danger--sm" (click)="confirmDelete()">削除する</button>
+
+                      <button type="button" class="btn-secondary btn-secondary--sm" (click)="cancelDelete()">やめる</button>
+
+                    </div>
+
+                  </div>
+
+                }
+
+                @if (editFeedback() === 'empty') {
+
+                  <p class="preset-list__error" role="alert">種別の内容を入力してください。</p>
+
+                }
+
+                @if (editFeedback() === 'duplicate') {
+
+                  <p class="preset-list__error" role="alert">同じ種別は既に登録されています。</p>
+
+                }
+
+              } @else {
+
+                <div class="preset-list__row">
+
+                  <span class="preset-list__label">{{ presetLabel(preset) }}</span>
+
+                  <button type="button" class="btn-secondary btn-secondary--sm" (click)="startEdit(preset)">編集</button>
+
+                </div>
+
+              }
+
+            </li>
+
+          }
+
+        </ul>
+
+      }
+
+    </section>
+
+  </main>
+
+</div>
+

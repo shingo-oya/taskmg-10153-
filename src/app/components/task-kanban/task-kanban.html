@@ -1,0 +1,408 @@
+<main class="main">
+  <div class="page-top">
+    <a class="page-top__back" routerLink="/tasks/list">◂一覧へ戻る</a>
+    <a class="page-top__link" routerLink="/tasks/gantt">▾ガントチャート</a>
+    <div class="page-top__title-row">
+      <h1 class="page-top__title">課題カンバン</h1>
+      @if (perm.can('task.write')) {
+        <button type="button" class="btn btn--primary btn--register" (click)="onRegister()">
+          課題の新規登録
+        </button>
+      }
+    </div>
+    <p class="page-top__meta">ステータスごとに課題を表示（ドラッグでステータス変更）</p>
+  </div>
+
+  <section class="search-bar" aria-label="検索条件の表示と変更">
+    <button
+      type="button"
+      class="btn btn--secondary btn--search"
+      (click)="toggleSearchPanel()"
+      [attr.aria-expanded]="panelOpen()"
+      [attr.aria-controls]="panelOpen() ? 'tkb-search-panel' : null"
+      aria-haspopup="dialog"
+    >
+      条件で検索する
+    </button>
+    <div class="search-bar__filters-row" aria-live="polite">
+      <div class="search-field">
+        <span class="search-field__label">[種別]</span>
+        <span class="search-field__value">{{ appliedTypeLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[担当部署]</span>
+        <span class="search-field__value">{{ appliedDepartmentLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[担当者]</span>
+        <span class="search-field__value">{{ appliedMemberLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[終了予定日]</span>
+        <span class="search-field__value">{{ appliedEndDateLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[優先度]</span>
+        <span class="search-field__value">{{ appliedPriorityLabel() }}</span>
+      </div>
+      <div class="search-field">
+        <span class="search-field__label">[ステータス]</span>
+        <span class="search-field__value">{{ appliedStatusLabel() }}</span>
+      </div>
+    </div>
+  </section>
+
+  @if (rowConfirm()) {
+    <div class="list-row-confirm" role="region" aria-label="操作の確認">
+      <p class="list-row-confirm__text">{{ rowConfirmMessage() }}</p>
+      <div class="list-row-confirm__actions">
+        <button type="button" class="btn btn--primary btn--sm" (click)="confirmRowAction()">実行する</button>
+        <button type="button" class="btn btn--secondary btn--sm" (click)="cancelRowConfirm()">やめる</button>
+      </div>
+    </div>
+  }
+  @if (rowActionFeedback()) {
+    <p class="list-row-confirm__feedback" role="status">{{ rowActionFeedback() }}</p>
+  }
+
+  @if (panelOpen()) {
+    <div class="search-overlay" (click)="closePanelWithoutApply()">
+      <div
+        id="tkb-search-panel"
+        class="search-panel"
+        role="dialog"
+        aria-label="検索条件の選択"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="search-panel__toolbar">
+          <button type="button" class="btn btn--primary" (click)="applySearch()">検索</button>
+          <button type="button" class="btn btn--secondary" (click)="closePanelWithoutApply()">キャンセル</button>
+          <button type="button" class="btn btn--ghost search-panel__clear" (click)="clearDraftFilters()">
+            条件をクリア
+          </button>
+          <app-filter-presets
+            [screen]="'task-kanban'"
+            [draftSnapshot]="draftFilterSnapshot()"
+            (applySnapshot)="onPresetApplied($event)"
+          />
+        </div>
+        <div class="search-panel__date-range" (click)="$event.stopPropagation()">
+          <span class="search-panel__date-range-label" id="tkb-end-date-label">終了予定日</span>
+          <div class="search-panel__date-range-inputs" role="group" aria-labelledby="tkb-end-date-label">
+            <input
+              type="date"
+              class="search-panel__date-input"
+              [value]="draftEndDateFrom()"
+              (input)="onDraftEndFromInput($event)"
+              aria-label="終了予定日 開始"
+            />
+            <span class="search-panel__date-sep" aria-hidden="true">～</span>
+            <input
+              type="date"
+              class="search-panel__date-input"
+              [value]="draftEndDateTo()"
+              (input)="onDraftEndToInput($event)"
+              aria-label="終了予定日 終了"
+            />
+          </div>
+        </div>
+        <div class="search-panel__filters" (click)="onFilterPanelAreaClick($event)">
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'type'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('type', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'type'"
+              [attr.aria-controls]="'filter-tkb-type'"
+              id="filter-tkb-type-trigger"
+            >
+              <span class="filter-dd__heading">種別</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftTypes()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'type') {
+              <div class="filter-dd__menu" id="filter-tkb-type" role="group" aria-labelledby="filter-tkb-type-trigger">
+                @for (ty of typeOptions; track ty) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftTypeSelected(ty)"
+                      (change)="onDraftTypeChange(ty, $event)"
+                    />
+                    {{ ty }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'department'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('department', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'department'"
+              [attr.aria-controls]="'filter-tkb-dept'"
+              id="filter-tkb-dept-trigger"
+            >
+              <span class="filter-dd__heading">担当部署</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftDepartments()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'department') {
+              <div class="filter-dd__menu" id="filter-tkb-dept" role="group" aria-labelledby="filter-tkb-dept-trigger">
+                @for (dept of departmentOptions; track dept) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftDepartmentSelected(dept)"
+                      (change)="onDraftDepartmentChange(dept, $event)"
+                    />
+                    {{ dept }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'member'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('member', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'member'"
+              [attr.aria-controls]="'filter-tkb-member'"
+              id="filter-tkb-member-trigger"
+            >
+              <span class="filter-dd__heading">担当者</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftMembers()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'member') {
+              <div
+                class="filter-dd__menu"
+                id="filter-tkb-member"
+                role="group"
+                aria-labelledby="filter-tkb-member-trigger"
+              >
+                @for (m of memberOptions; track m) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftMemberSelected(m)"
+                      (change)="onDraftMemberChange(m, $event)"
+                    />
+                    {{ m }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'priority'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('priority', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'priority'"
+              [attr.aria-controls]="'filter-tkb-priority'"
+              id="filter-tkb-priority-trigger"
+            >
+              <span class="filter-dd__heading">優先度</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftPriorities()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'priority') {
+              <div
+                class="filter-dd__menu"
+                id="filter-tkb-priority"
+                role="group"
+                aria-labelledby="filter-tkb-priority-trigger"
+              >
+                @for (p of priorityOptions; track p) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftPrioritySelected(p)"
+                      (change)="onDraftPriorityChange(p, $event)"
+                    />
+                    {{ p }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="filter-dd"
+            [class.filter-dd--open]="openFilterDropdown() === 'status'"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="filter-dd__trigger"
+              (click)="toggleFilterDropdown('status', $event)"
+              [attr.aria-expanded]="openFilterDropdown() === 'status'"
+              [attr.aria-controls]="'filter-tkb-status'"
+              id="filter-tkb-status-trigger"
+            >
+              <span class="filter-dd__heading">ステータス</span>
+              <span class="filter-dd__summary">{{ formatMultiSelectLabel(draftStatuses()) }}</span>
+              <span class="filter-dd__chevron" aria-hidden="true"></span>
+            </button>
+            @if (openFilterDropdown() === 'status') {
+              <div
+                class="filter-dd__menu"
+                id="filter-tkb-status"
+                role="group"
+                aria-labelledby="filter-tkb-status-trigger"
+              >
+                @for (st of statusOptions; track st) {
+                  <label class="filter-dd__option">
+                    <input
+                      type="checkbox"
+                      class="filter-dd__check"
+                      [checked]="isDraftStatusSelected(st)"
+                      (change)="onDraftStatusChange(st, $event)"
+                    />
+                    {{ st }}
+                  </label>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="kanban" cdkDropListGroup role="region" aria-label="課題カンバン">
+    @for (col of kanbanColumns(); track col.status) {
+      <section class="kanban__column" [attr.aria-labelledby]="'kanban-col-' + col.status">
+        <h2 class="kanban__column-title" [id]="'kanban-col-' + col.status">
+          {{ col.status }}
+          <span class="kanban__column-count" aria-hidden="true">（{{ col.tasks.length }}）</span>
+        </h2>
+        <div
+          class="kanban__cards"
+          cdkDropList
+          [id]="dropListId(col.status)"
+          [cdkDropListData]="col.tasks"
+          [cdkDropListConnectedTo]="dropListIds"
+          [attr.aria-label]="col.status"
+          (cdkDropListDropped)="onColumnDrop($event, col.status)"
+        >
+          @for (task of col.tasks; track task.managementNo) {
+            <article class="kanban-card" cdkDrag [cdkDragData]="task">
+              <div class="kanban-card__head">
+                <app-row-actions-menu (actionSelect)="onTaskRowAction($event, task)" />
+              </div>
+              <dl class="kanban-card__fields">
+                <div class="kanban-card__row">
+                  <dt>種別</dt>
+                  <dd>{{ task.type }}</dd>
+                </div>
+                <div class="kanban-card__row">
+                  <dt>課題管理番号</dt>
+                  <dd>{{ task.managementNo }}</dd>
+                </div>
+                <div class="kanban-card__row kanban-card__row--name">
+                  <dt>課題名</dt>
+                  <dd>
+                    <a class="kanban-card__link" [routerLink]="['/tasks', task.managementNo]">{{ task.taskname }}</a>
+                  </dd>
+                </div>
+                <div class="kanban-card__row">
+                  <dt>担当部署</dt>
+                  <dd>{{ departmentsText(task) }}</dd>
+                </div>
+                <div class="kanban-card__row">
+                  <dt>担当者</dt>
+                  <dd>{{ membersText(task) }}</dd>
+                </div>
+                <div class="kanban-card__row">
+                  <dt>終了予定日</dt>
+                  <dd>{{ task.endDate || '—' }}</dd>
+                </div>
+                <div class="kanban-card__row">
+                  <dt>優先度</dt>
+                  <dd>{{ task.priority }}</dd>
+                </div>
+                <div class="kanban-card__row">
+                  <dt>ステータス</dt>
+                  <dd><span [class]="statusBadgeClasses(task.status)">{{ task.status }}</span></dd>
+                </div>
+                <div class="kanban-card__row">
+                  <dt>進捗率</dt>
+                  <dd>{{ displayedTaskProgress(task) }}%</dd>
+                </div>
+              </dl>
+            </article>
+          }
+        </div>
+      </section>
+    }
+  </div>
+</main>
+
+@if (approverModalOpen()) {
+  <div class="approver-overlay" (click)="closeApproverModal()" role="presentation">
+    <div
+      class="approver-dialog"
+      role="dialog"
+      aria-labelledby="approver-dialog-title"
+      aria-modal="true"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="approver-dialog-title" class="approver-dialog__title">確認待ちに変更</h2>
+      @if (pendingStatusChange(); as pending) {
+        <p class="approver-dialog__task">
+          <span class="approver-dialog__mn">{{ pending.task.managementNo }}</span>
+          {{ pending.task.taskname }}
+        </p>
+      }
+      <div class="approver-dialog__field">
+        <label class="approver-dialog__label" for="kanban-approver">承認者</label>
+        <select
+          id="kanban-approver"
+          class="approver-dialog__select"
+          [value]="approverDraft()"
+          (change)="onApproverDraftChange($event)"
+          [attr.aria-invalid]="approverModalError()"
+        >
+          <option value="">選択してください</option>
+          @for (a of approverOptions; track a) {
+            <option [value]="a">{{ a }}</option>
+          }
+        </select>
+        @if (approverModalError()) {
+          <span class="approver-dialog__error" role="alert">承認者を選択してください</span>
+        }
+      </div>
+      <div class="approver-dialog__actions">
+        <button type="button" class="btn btn--primary" (click)="confirmApproverModal()">変更する</button>
+        <button type="button" class="btn btn--secondary" (click)="closeApproverModal()">キャンセル</button>
+      </div>
+    </div>
+  </div>
+}
