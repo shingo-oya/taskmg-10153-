@@ -53,21 +53,37 @@ ng e2e
 ```
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Firebase (Production)
 
-## Firebase（本番）
+Project ID:
 
-- プロジェクト ID: `kensyu10153`
-- 詳細手順: [docs/DEPLOY.md](docs/DEPLOY.md)
+kensyu10153
+
+Deployment guide:
+
+docs/DEPLOY.md
+
+Login to Firebase:
 
 ```bash
 firebase login
 npm run firebase:deploy-production
 ```
 
-本番 URL: https://kensyu10153.web.app/
+Production URL:
+https://kensyu10153.web.app/
 
-Web Push の秘密鍵は `functions/.env`（`functions/.env.example` をコピーして編集）。**`.env` はコミットしないでください。**
+Web Push
 
+The Web Push private key is stored in:
+
+functions/.env
+
+Copy the example file and edit it as needed:
+
+functions/.env.example
+
+Do NOT commit .env files to GitHub.
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
