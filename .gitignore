@@ -38,6 +38,9 @@ testem.log
 /typings
 __screenshots__/
 
+# Firebase CLI local cache (generated on deploy)
+.firebase/
+
 # System files
 .DS_Store
 Thumbs.db
