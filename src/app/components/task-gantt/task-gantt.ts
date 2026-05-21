@@ -661,38 +661,37 @@ export class TaskGanttComponent {
     if (!drag.hadStartedOn) {
       const reg = drag.origRegistered;
       const end = drag.origEnd;
-      const newReg = reg ? addDaysToIsoDateKey(reg, deltaDays) : null;
       const newEnd = end ? addDaysToIsoDateKey(end, deltaDays) : null;
-      if (!newReg && !newEnd) {
+      if (!newEnd) {
         return null;
-      }
-      let completed = drag.origCompleted;
-      if (completed) {
-        completed = addDaysToIsoDateKey(completed, deltaDays) ?? completed;
       }
       return {
         startedOn: '',
-        registeredOn: newReg ?? reg,
-        endDate: newEnd ?? end,
-        completedOn: completed || undefined,
+        registeredOn: reg,
+        endDate: newEnd,
+        completedOn: drag.origCompleted || undefined,
       };
     }
 
     const newStart = addDaysToIsoDateKey(drag.origStarted, deltaDays);
     const newEnd = addDaysToIsoDateKey(drag.origEnd, deltaDays);
-    if (!newStart || !newEnd) {
+    if (!newEnd) {
       return null;
     }
 
+    // バー中央ドラッグ: 終了予定日のみ（着手開始日は固定）
     if (drag.mode === 'move') {
-      let completed = drag.origCompleted;
-      if (completed) {
-        completed = addDaysToIsoDateKey(completed, deltaDays) ?? completed;
+      const startFixed = drag.origStarted;
+      if (parseIsoDateKey(newEnd)! < parseIsoDateKey(startFixed)!) {
+        return { startedOn: newEnd, endDate: startFixed, completedOn: drag.origCompleted || undefined };
       }
-      return { startedOn: newStart, endDate: newEnd, completedOn: completed || undefined };
+      return { startedOn: startFixed, endDate: newEnd, completedOn: drag.origCompleted || undefined };
     }
 
     if (drag.mode === 'resize-start') {
+      if (!newStart) {
+        return null;
+      }
       const endFixed = drag.origEnd;
       const start = newStart;
       if (parseIsoDateKey(start)! > parseIsoDateKey(endFixed)!) {
